@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Protocolos - SERIPM MARICÁ</title>
+    <!-- Tailwind CSS Oficial -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Ícones FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* Estilização para impressão de documentos oficiais da prefeitura */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-section, #print-section * {
+                visibility: visible;
+            }
+            #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background-color: white !important;
+                color: black !important;
+                padding: 20px;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* Custom scrollbars */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+    <!-- 1. TELA DE AUTENTICAÇÃO GOVERNAMENTAL -->
+    <div id="login-screen" class="flex-grow flex items-center justify-center px-4 py-12 bg-gradient-to-tr from-slate-950 via-blue-950 to-slate-950">
+        <div class="max-w-md w-full space-y-8 bg-white/95 backdrop-blur-md p-10 rounded-3xl shadow-2xl border border-white/20">
+            <div class="text-center">
+                <!-- Logotipo de Iluminação e Energia -->
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 text-white text-4xl mb-4 shadow-xl shadow-orange-500/20">
+                    <i class="fa-solid fa-lightbulb"></i>
+                </div>
+                <h3 class="text-xs font-extrabold text-blue-600 tracking-widest uppercase">Prefeitura de Maricá</h3>
+                <h2 class="text-2xl font-black text-slate-800 tracking-tight leading-tight mt-1">SERIPM</h2>
+                <p class="text-[10px] text-slate-400 font-bold tracking-wider uppercase mt-1">Secretaria de Energias Renováveis e Iluminação Pública</p>
+            </div>
+            
+            <form class="mt-8 space-y-5" id="login-form" onsubmit="handleLogin(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label for="username" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Operador / Usuário</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-user text-xs"></i>
+                            </span>
+                            <input id="username" type="text" required class="appearance-none rounded-xl relative block w-full pl-10 pr-3 py-3 border border-slate-200 placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-xs font-semibold" placeholder="Seu usuário da planilha">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Senha de Acesso</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input id="password" type="password" required class="appearance-none rounded-xl relative block w-full pl-10 pr-3 py-3 border border-slate-200 placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-xs font-semibold" placeholder="••••••••">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-login-submit" class="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-xs font-bold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg shadow-blue-500/20 active:scale-95">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="fa-solid fa-right-to-bracket text-blue-300" id="login-spinner"></i>
+                    </span>
+                    Acessar Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. DASHBOARD GOVERNAMENTAL SERIPM -->
+    <div id="main-dashboard" class="hidden flex-grow flex flex-col">
+        <!-- Header Principal -->
+        <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40 border-b border-blue-900/40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-blue-500/10">
+                        <i class="fa-solid fa-city"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-sm font-black tracking-wider uppercase leading-none">PREFEITURA DE MARICÁ</h1>
+                            <span class="bg-blue-600/30 text-blue-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded tracking-widest uppercase border border-blue-500/20" id="header-user-role">ADMIN</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold tracking-wide mt-1 uppercase">Secretaria de Energias Renováveis e Iluminação Pública - SERIPM</p>
+                    </div>
+                </div>
+                
+                <!-- Informações do Operador Ativo -->
+                <div class="flex items-center space-x-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-bold text-slate-200" id="header-username">Operador</p>
+                        <button onclick="handleLogout()" class="text-[10px] text-rose-400 hover:text-rose-300 font-bold tracking-wider uppercase transition-colors flex items-center gap-1.5 mt-1 ml-auto">Sair do Painel <i class="fa-solid fa-right-from-bracket"></i></button>
+                    </div>
+                    <button onclick="handleLogout()" class="sm:hidden w-9 h-9 rounded-xl border border-slate-700 flex items-center justify-center text-rose-400 hover:bg-slate-800 transition-all">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Container de Conteúdo -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+            
+            <!-- Título Principal do Sistema -->
+            <div class="border-b border-slate-200 pb-3">
+                <h2 class="text-lg font-black text-slate-800 tracking-tight uppercase">SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA DE MARICÁ - SERIPM</h2>
+                <p class="text-xs text-slate-500 font-medium">Controle Unificado de Protocolos e Atendimentos de Iluminação Pública.</p>
+            </div>
+
+            <!-- Linha de Ações: Navegação de Abas e Status de Sincronia -->
+            <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                <!-- Abas Dinâmicas (Mapeadas do Google Sheets) -->
+                <div class="flex flex-wrap bg-slate-200/60 p-1 rounded-2xl w-fit gap-1 border border-slate-300/30" id="tab-navigation">
+                    <!-- Abas injetadas via JS -->
+                </div>
+                
+                <!-- Status de Sincronia e Atualização -->
+                <div class="flex items-center gap-3 self-end lg:self-auto bg-white border border-slate-200 p-2 rounded-xl shadow-sm">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-1" id="sync-timer">Sincronizando...</span>
+                    <button onclick="fetchData()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-extrabold rounded-lg flex items-center gap-1.5 shadow-md shadow-blue-500/10 transition-all active:scale-95">
+                        <i class="fa-solid fa-arrows-rotate" id="sync-spinner"></i> Atualizar Dados
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cards de Métricas Setoriais -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="metric-cards">
+                <!-- Métricas dinâmicas -->
+            </div>
+
+            <!-- Painel de Filtros Avançados e Busca Corporativa -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <i class="fa-solid fa-filter text-blue-600 text-sm"></i>
+                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider font-extrabold">Filtros de Pesquisa e Triagem</h3>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Filtro por Número de Protocolo -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Nº do Protocolo / ID</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                                <i class="fa-solid fa-hashtag text-xs"></i>
+                            </span>
+                            <input type="text" id="filter-id" oninput="filterData()" placeholder="Buscar ID..." class="w-full pl-8 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        </div>
+                    </div>
+
+                    <!-- Filtro por Bairro (Com auto-complete dinâmico) -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Filtrar por Bairro</label>
+                        <select id="filter-bairro" onchange="filterData()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                            <option value="">TODOS OS BAIRROS</option>
+                            <!-- Injetado dinamicamente -->
+                        </select>
+                    </div>
+
+                    <!-- Filtro por Data Inicial -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Data Inicial</label>
+                        <input type="date" id="filter-date-start" onchange="filterData()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    </div>
+
+                    <!-- Filtro por Data Final -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Data Final</label>
+                        <input type="date" id="filter-date-end" onchange="filterData()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Principal com os Dados dos Protocolos -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <div class="px-5 py-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></span>
+                        <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider" id="table-title">LISTAGEM DE PROTOCOLOS ATIVOS</h3>
+                    </div>
+                    
+                    <!-- Ações de Exportação Global -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="exportToCSV()" class="px-3.5 py-1.5 bg-slate-850 hover:bg-slate-750 text-slate-800 border border-slate-200 hover:bg-slate-50 text-[11px] font-extrabold rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
+                            <i class="fa-solid fa-file-csv text-emerald-600"></i> Exportar Tudo (.CSV)
+                        </button>
+                        <button onclick="exportToPDF()" class="px-3.5 py-1.5 bg-slate-850 hover:bg-slate-750 text-slate-800 border border-slate-200 hover:bg-slate-50 text-[11px] font-extrabold rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
+                            <i class="fa-solid fa-file-pdf text-red-500"></i> Exportar Tudo (PDF)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Painel de carregamento / Erro -->
+                <div id="loading-container" class="flex flex-col items-center justify-center py-20 bg-white">
+                    <i class="fa-solid fa-spinner text-4xl text-blue-600 animate-spin mb-4"></i>
+                    <p class="text-xs font-bold text-slate-600 uppercase tracking-wider">Aguardando Conexão e Validação da API...</p>
+                </div>
+
+                <div id="empty-container" class="hidden flex-col items-center justify-center py-20 bg-white">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-xl mb-4">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h4 class="text-sm font-bold text-slate-700 uppercase">Nenhum protocolo localizado</h4>
+                    <p class="text-xs text-slate-400 mt-1">Não há correspondências de protocolos para os filtros aplicados neste setor.</p>
+                </div>
+
+                <!-- Tabela de Protocolos (Responsiva) -->
+                <div class="overflow-x-auto custom-scrollbar hidden" id="table-wrapper">
+                    <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-700 font-extrabold tracking-wider uppercase text-[10px]">
+                            <tr>
+                                <th scope="col" class="py-3 px-4 w-12 text-center">
+                                    <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)" class="rounded text-blue-600 focus:ring-blue-500 border-slate-300 w-4 h-4">
+                                </th>
+                                <th scope="col" class="py-3 px-4">Nº Protocolo</th>
+                                <th scope="col" class="py-3 px-4">Data/Hora</th>
+                                <th scope="col" class="py-3 px-4">Cliente</th>
+                                <th scope="col" class="py-3 px-4">Bairro</th>
+                                <th scope="col" class="py-3 px-4">Responsável</th>
+                                <th scope="col" class="py-3 px-4">Status</th>
+                                <th scope="col" class="py-3 px-4 w-48">Observações</th>
+                                <th scope="col" class="py-3 px-4 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-slate-700 bg-white" id="protocol-table-body">
+                            <!-- Injetado dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- BARRA FLUTUANTE DE AÇÕES DE LOTE (Checkbox selecionados) -->
+    <div id="batch-actions-bar" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 transition-all translate-y-32 opacity-0 pointer-events-none border border-blue-900/40">
+        <span class="text-xs font-bold text-blue-400 uppercase tracking-widest"><span id="batch-count">0</span> selecionados</span>
+        <div class="h-4 w-px bg-slate-800"></div>
+        <button onclick="printSelected()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[11px] font-extrabold flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/10">
+            <i class="fa-solid fa-print"></i> Imprimir Selecionados
+        </button>
+        <button onclick="exportSelectedCSV()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] font-extrabold flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-file-csv text-emerald-500"></i> Exportar Selecionados (.CSV)
+        </button>
+    </div>
+
+    <!-- SEÇÃO OCULTA DE IMPRESSÃO GOVERNAMENTAL -->
+    <div id="print-section" class="hidden">
+        <!-- Gerado via JS no momento da impressão -->
+    </div>
+
+    <!-- MODAIS DE OPERAÇÃO -->
+    <!-- MODAL 1: ADICIONAR COMENTÁRIO -->
+    <div id="modal-comment" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 transition-all scale-95 duration-200">
+            <div class="p-6 border-b border-slate-150 flex items-center justify-between bg-slate-50">
+                <h3 class="text-xs font-black text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-comment-medical text-blue-600"></i> Registrar Nova Observação
+                </h3>
+                <button onclick="closeCommentModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <p class="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest mb-1.5" id="comment-modal-id">Protocolo #1234</p>
+                    <textarea id="comment-textarea" rows="4" placeholder="Escreva a atualização do atendimento. Seu nome, data e hora serão anexados automaticamente..." class="w-full border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-semibold"></textarea>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
+                <button onclick="closeCommentModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 text-xs font-bold hover:bg-slate-100 transition-all">Cancelar</button>
+                <button id="btn-submit-comment" onclick="submitComment()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all">Confirmar Registro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: TRAMITAÇÃO / ALTERAR STATUS -->
+    <div id="modal-status" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-100 transition-all scale-95 duration-200">
+            <div class="p-6 border-b border-slate-150 flex items-center justify-between bg-slate-50">
+                <h3 class="text-xs font-black text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-arrows-spin text-blue-600"></i> Tramitação do Protocolo
+                </h3>
+                <button onclick="closeStatusModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <p class="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest mb-1.5" id="status-modal-id">Mover Protocolo #1234</p>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Selecione o Novo Status de Setor:</label>
+                    <select id="status-select" class="w-full border border-slate-200 rounded-xl p-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                        <option value="Novo">NOVO (Permanecer na Entrada)</option>
+                        <option value="Encaminhado Obra">ENCAMINHAR PARA OBRA</option>
+                        <option value="Setor Supervisor">ENCAMINHAR PARA SUPERVISOR</option>
+                        <option value="Setor Implantação">ENCAMINHAR PARA IMPLANTAÇÃO</option>
+                        <option value="Com Funcionário">TRAMITAR COM FUNCIONÁRIO</option>
+                        <option value="Setor Telecom">ENCAMINHAR PARA TELECOM</option>
+                        <option value="Encaminhado Garantia">ENCAMINHAR PARA GARANTIA</option>
+                        <option value="Setor Administrativo">ENCAMINHAR PARA ADMINISTRATIVO</option>
+                        <option value="Urgente">MARCAR COMO URGENTE</option>
+                        <option value="Atrasado">MARCAR COMO ATRASADO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
+                <button onclick="closeStatusModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 text-xs font-bold hover:bg-slate-100 transition-all">Voltar</button>
+                <button id="btn-submit-status" onclick="submitStatusChange()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-all">Confirmar Envio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST DE NOTIFICAÇÃO -->
+    <div id="toast-notification" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs font-semibold transition-all translate-y-20 opacity-0 pointer-events-none">
+        <span id="toast-icon" class="text-emerald-400"><i class="fa-solid fa-circle-check"></i></span>
+        <span id="toast-msg">Notificação de Sincronia</span>
+    </div>
+
+    <!-- CONFIGURAÇÕES DE VÍNCULO (VENEZA DA API) -->
+    <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 py-6 text-center mt-auto no-print">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+            <p class="text-[10px] uppercase font-bold tracking-wider">PREFEITURA DE MARICÁ - SISTEMA DE AUTOMAÇÃO DE PROTOCOLOS SERIPM 2026</p>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-extrabold tracking-widest uppercase">Web App URL:</span>
+                <input type="password" id="gas-url-input" placeholder="Cole a URL gerada na implantação do GAS" class="border border-slate-800 bg-slate-950 text-slate-300 rounded-lg px-3 py-1.5 text-[10px] w-64 focus:outline-none focus:ring-1 focus:ring-blue-600">
+                <button onclick="saveGasUrl()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all">Vincular</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * -------------------------------------------------------------------------
+         * CONFIGURAÇÃO GLOBAL E CONTROLE DE ESTADOS
+         * -------------------------------------------------------------------------
+         */
+        let sessionToken = localStorage.getItem('proto_session_token') || null;
+        let loggedUser = localStorage.getItem('proto_session_user') || null;
+        let loggedRole = localStorage.getItem('proto_session_role') || null;
+        let activeTab = ""; 
+        let cachedData = {}; 
+        let selectedProtocols = new Set();
+        
+        let GAS_API_URL = localStorage.getItem('proto_gas_url') || "";
+        document.getElementById('gas-url-input').value = GAS_API_URL;
+
+        let currentModalTarget = { id: "", tab: "" };
+
+        /**
+         * -------------------------------------------------------------------------
+         * AUTENTICAÇÃO E SESSÃO
+         * -------------------------------------------------------------------------
+         */
+        function handleLogin(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById('username').value.trim();
+            const passwordInput = document.getElementById('password').value.trim();
+            const btnSubmit = document.getElementById('btn-login-submit');
+            const spinner = document.getElementById('login-spinner');
+
+            if (!GAS_API_URL) {
+                showToast("Por favor, cole a URL da sua implantação do GAS no rodapé do site.", "error");
+                return;
+            }
+
+            spinner.className = "fa-solid fa-spinner animate-spin text-blue-300";
+            btnSubmit.disabled = true;
+
+            fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({
+                    action: "login",
+                    username: usernameInput,
+                    password: passwordInput
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 200 && data.success) {
+                    setSession(data.token, data.username, data.role);
+                    showToast(data.message, "success");
+                    loadDashboard();
+                } else {
+                    showToast(data.error || "Usuário ou senha incorretos.", "error");
+                }
+            })
+            .catch(err => {
+                showToast("Falha de conexão com a API: " + err.message, "error");
+            })
+            .finally(() => {
+                spinner.className = "fa-solid fa-right-to-bracket text-blue-300";
+                btnSubmit.disabled = false;
+            });
+        }
+
+        function setSession(token, user, role) {
+            sessionToken = token;
+            loggedUser = user;
+            loggedRole = role;
+            localStorage.setItem('proto_session_token', token);
+            localStorage.setItem('proto_session_user', user);
+            localStorage.setItem('proto_session_role', role);
+        }
+
+        function handleLogout() {
+            sessionToken = null;
+            loggedUser = null;
+            loggedRole = null;
+            localStorage.removeItem('proto_session_token');
+            localStorage.removeItem('proto_session_user');
+            localStorage.removeItem('proto_session_role');
+            
+            document.getElementById('main-dashboard').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            showToast("Você desconectou do painel do SERIPM.", "success");
+        }
+
+        /**
+         * -------------------------------------------------------------------------
+         * BUSCA E SINCRONIZAÇÃO DE INFORMAÇÕES
+         * -------------------------------------------------------------------------
+         */
+        function fetchData() {
+            if (!sessionToken) return;
+            
+            const spinner = document.getElementById('sync-spinner');
+            spinner.classList.add('animate-spin');
+            
+            if (!GAS_API_URL) {
+                showToast("Vincule a URL da API no rodapé antes de atualizar.", "error");
+                spinner.classList.remove('animate-spin');
+                return;
+            }
+
+            const url = `${GAS_API_URL}?action=getProtocols&token=${encodeURIComponent(sessionToken)}`;
+            
+            fetch(url)
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    cachedData = res.data;
+                    selectedProtocols.clear();
+                    updateBatchBar();
+                    renderTabNavigation();
+                    populateBairrosFilter();
+                    renderData();
+                    document.getElementById('sync-timer').textContent = "Sincronizado às " + new Date().toLocaleTimeString();
+                    showToast("Atualização concluída com sucesso.", "success");
+                } else {
+                    showToast(res.error || "Sua sessão expirou.", "error");
+                    if (res.code === 401) handleLogout();
+                }
+            })
+            .catch(err => {
+                showToast("Erro na sincronização: " + err.message, "error");
+            })
+            .finally(() => {
+                spinner.classList.remove('animate-spin');
+            });
+        }
+
+        function populateBairrosFilter() {
+            const select = document.getElementById('filter-bairro');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">TODOS OS BAIRROS</option>';
+
+            const bairrosSet = new Set();
+            Object.values(cachedData).forEach(tabList => {
+                tabList.forEach(item => {
+                    if (item.bairro) bairrosSet.add(item.bairro.toUpperCase().trim());
+                });
+            });
+
+            const sortedBairros = Array.from(bairrosSet).sort();
+            sortedBairros.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                if (b === currentValue) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        /**
+         * -------------------------------------------------------------------------
+         * RENDERIZADORES REATIVOS (HTML/DOM)
+         * -------------------------------------------------------------------------
+         */
+        function renderTabNavigation() {
+            const nav = document.getElementById('tab-navigation');
+            nav.innerHTML = "";
+            const availableTabs = Object.keys(cachedData);
+            
+            if (availableTabs.length === 0) return;
+            
+            if (!activeTab || !availableTabs.includes(activeTab)) {
+                activeTab = availableTabs[0];
+            }
+
+            availableTabs.forEach(tab => {
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === tab ? 'bg-white text-blue-600 shadow-md border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-900 hover:bg-white/40'}`;
+                btn.textContent = tab;
+                btn.onclick = () => {
+                    activeTab = tab;
+                    selectedProtocols.clear();
+                    updateBatchBar();
+                    renderTabNavigation();
+                    renderData();
+                };
+                nav.appendChild(btn);
+            });
+        }
+
+        function renderData() {
+            const tableBody = document.getElementById('protocol-table-body');
+            const loading = document.getElementById('loading-container');
+            const empty = document.getElementById('empty-container');
+            const tableWrapper = document.getElementById('table-wrapper');
+            
+            const filterId = document.getElementById('filter-id').value.trim().toLowerCase();
+            const filterBairro = document.getElementById('filter-bairro').value;
+            const filterStart = document.getElementById('filter-date-start').value;
+            const filterEnd = document.getElementById('filter-date-end').value;
+
+            loading.classList.add('hidden');
+            tableBody.innerHTML = "";
+
+            if (!activeTab || !cachedData[activeTab]) {
+                empty.classList.remove('hidden');
+                tableWrapper.classList.add('hidden');
+                return;
+            }
+
+            let protocols = [...cachedData[activeTab]];
+
+            // FILTRO 1: Por Protocolo ID
+            if (filterId) {
+                protocols = protocols.filter(p => p.id && p.id.toLowerCase().includes(filterId));
+            }
+
+            // FILTRO 2: Por Bairro
+            if (filterBairro) {
+                protocols = protocols.filter(p => p.bairro && p.bairro.toUpperCase().trim() === filterBairro.toUpperCase());
+            }
+
+            // FILTRO 3: Por Intervalo de Datas
+            if (filterStart) {
+                const startLimit = new Date(filterStart + "T00:00:00");
+                protocols = protocols.filter(p => {
+                    if (!p.data) return false;
+                    const pDate = new Date(p.data.split(" ")[0] + "T00:00:00");
+                    return pDate >= startLimit;
+                });
+            }
+            if (filterEnd) {
+                const endLimit = new Date(filterEnd + "T23:59:59");
+                protocols = protocols.filter(p => {
+                    if (!p.data) return false;
+                    const pDate = new Date(p.data.split(" ")[0] + "T23:59:59");
+                    return pDate <= endLimit;
+                });
+            }
+
+            renderMetrics(protocols);
+
+            if (protocols.length === 0) {
+                empty.classList.remove('hidden');
+                tableWrapper.classList.add('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            tableWrapper.classList.remove('hidden');
+
+            document.getElementById('check-all').checked = false;
+
+            protocols.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition-colors font-medium border-b border-slate-100";
+                
+                const isSelected = selectedProtocols.has(item.id);
+
+                const formattedObs = item.observacoes 
+                    ? item.observacoes.split("\n").map(line => `<p class="border-l-2 border-blue-500 pl-1.5 py-0.5 text-[9px] text-slate-500 mb-0.5 leading-relaxed font-semibold">${line}</p>`).join("")
+                    : `<span class="text-[10px] text-slate-400 italic">Sem anotações</span>`;
+
+                let visualDate = "Data indefinida";
+                if (item.data) {
+                    const parts = item.data.split(" ");
+                    if (parts[0]) {
+                        const dateParts = parts[0].split("-");
+                        if (dateParts.length === 3) {
+                            visualDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` + (parts[1] ? ` - ${parts[1]}` : '');
+                        } else {
+                            visualDate = item.data;
+                        }
+                    }
+                }
+
+                row.innerHTML = `
+                    <td class="py-4.5 px-4 text-center">
+                        <input type="checkbox" onchange="toggleSelectProtocol('${item.id}', this)" ${isSelected ? 'checked' : ''} class="rounded text-blue-600 focus:ring-blue-500 border-slate-300 w-4 h-4 cursor-pointer">
+                    </td>
+                    <td class="py-4.5 px-4 font-bold text-slate-900">#${item.id || 'N/I'}</td>
+                    <td class="py-4.5 px-4 text-slate-500 font-semibold text-[11px]">${visualDate}</td>
+                    <td class="py-4.5 px-4 text-slate-800 font-bold">${item.cliente || 'Sem Identificação'}</td>
+                    <td class="py-4.5 px-4 font-semibold text-slate-600">${item.bairro || 'CENTRO'}</td>
+                    <td class="py-4.5 px-4 text-slate-500"><i class="fa-solid fa-user-circle text-slate-400 mr-1"></i>${item.responsavel || 'Sem dono'}</td>
+                    <td class="py-4.5 px-4">
+                        <span class="px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getStatusColorClass(item.status || 'Novo')}">
+                            ${item.status || 'Novo'}
+                        </span>
+                    </td>
+                    <td class="py-4.5 px-4 text-[10px]">
+                        <div class="max-h-20 overflow-y-auto custom-scrollbar">
+                            ${formattedObs}
+                        </div>
+                    </td>
+                    <td class="py-4.5 px-4 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openCommentModal('${item.id}', '${activeTab}')" title="Adicionar Observação" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all flex items-center justify-center active:scale-95 border border-slate-200">
+                                <i class="fa-regular fa-comment-dots text-xs"></i>
+                            </button>
+                            <button onclick="openStatusModal('${item.id}', '${activeTab}')" title="Mudar Status / Setor" class="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center active:scale-95 shadow-md shadow-blue-500/10">
+                                <i class="fa-solid fa-arrows-spin text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function renderMetrics(protocols) {
+            const metricsContainer = document.getElementById('metric-cards');
+            metricsContainer.innerHTML = "";
+            
+            const total = protocols.length;
+            const novos = protocols.filter(p => p.status.toUpperCase() === 'NOVO' || p.status.toUpperCase() === 'ABERTO').length;
+            const urgentes = protocols.filter(p => p.status.toUpperCase() === 'URGENTE' || p.status.toUpperCase() === 'ATRASADO').length;
+            const comFunc = protocols.filter(p => p.status.toUpperCase() === 'COM FUNCIONÁRIO').length;
+
+            const metrics = [
+                { label: "Protocolos no Setor", value: total, icon: "fa-folder-tree", color: "blue" },
+                { label: "Aguardando Triagem", value: novos, icon: "fa-circle-exclamation", color: "amber" },
+                { label: "Com Equipe Externa", value: comFunc, icon: "fa-truck-field", color: "indigo" },
+                { label: "SLA / Urgentes", value: urgentes, icon: "fa-fire", color: "rose" }
+            ];
+
+            metrics.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between";
+                card.innerHTML = `
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${m.label}</p>
+                        <p class="text-xl font-black text-slate-800 mt-1">${m.value}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-${m.color}-50 flex items-center justify-center text-${m.color}-600 text-sm border border-${m.color}-100">
+                        <i class="fa-solid ${m.icon}"></i>
+                    </div>
+                `;
+                metricsContainer.appendChild(card);
+            });
+        }
+
+        function getStatusColorClass(status) {
+            switch (status.toUpperCase()) {
+                case "NOVO":
+                case "ABERTO": 
+                    return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+                case "ENCAMINHADO OBRA": 
+                    return "bg-amber-50 text-amber-700 border border-amber-100";
+                case "SETOR SUPERVISOR": 
+                    return "bg-orange-50 text-orange-700 border border-orange-100";
+                case "SETOR IMPLANTAÇÃO": 
+                    return "bg-teal-50 text-teal-700 border border-teal-100";
+                case "COM FUNCIONÁRIO": 
+                    return "bg-purple-50 text-purple-700 border border-purple-100";
+                case "SETOR TELECOM": 
+                    return "bg-cyan-50 text-cyan-700 border border-cyan-100";
+                case "ENCAMINHADO GARANTIA": 
+                    return "bg-sky-50 text-sky-700 border border-sky-100";
+                case "SETOR ADMINISTRATIVO": 
+                    return "bg-blue-50 text-blue-700 border border-blue-100";
+                case "URGENTE": 
+                    return "bg-rose-50 text-rose-700 border border-rose-100";
+                case "ATRASADO": 
+                    return "bg-red-50 text-red-700 border border-red-100";
+                default: 
+                    return "bg-slate-50 text-slate-700 border border-slate-100";
+            }
+        }
+
+        /**
+         * -------------------------------------------------------------------------
+         * GESTÃO DE SELEÇÃO E CONTROLES DE CHECKBOXES
+         * -------------------------------------------------------------------------
+         */
+        function toggleSelectProtocol(id, el) {
+            if (el.checked) {
+                selectedProtocols.add(id);
+            } else {
+                selectedProtocols.delete(id);
+            }
+            updateBatchBar();
+        }
+
+        function toggleSelectAll(el) {
+            const tableBody = document.getElementById('protocol-table-body');
+            const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]');
+            
+            checkboxes.forEach(cb => {
+                cb.checked = el.checked;
+                const row = cb.closest('tr');
+                const id = row.querySelector('td:nth-child(2)').textContent.replace('#', '');
+                
+                if (el.checked) {
+                    selectedProtocols.add(id);
+                } else {
+                    selectedProtocols.delete(id);
+                }
+            });
+            updateBatchBar();
+        }
+
+        function updateBatchBar() {
+            const bar = document.getElementById('batch-actions-bar');
+            const count = document.getElementById('batch-count');
+            
+            if (selectedProtocols.size > 0) {
+                count.textContent = selectedProtocols.size;
+                bar.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+            } else {
+                bar.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+            }
+        }
+
+        /**
+         * -------------------------------------------------------------------------
+         * ROTINAS DE TRATAMENTO DE MODAL E OPERAÇÕES
+         * -------------------------------------------------------------------------
+         */
+        function openCommentModal(id, tab) {
+            currentModalTarget = { id, tab };
+            document.getElementById('comment-modal-id').textContent = `Protocolo #${id}`;
+            document.getElementById('comment-textarea').value = "";
+            document.getElementById('modal-comment').classList.remove('hidden');
+        }
+
+        function closeCommentModal() {
+            document.getElementById('modal-comment').classList.add('hidden');
+        }
+
+        function submitComment() {
+            const text = document.getElementById('comment-textarea').value.trim();
+            const btn = document.getElementById('btn-submit-comment');
+            if (!text) {
+                showToast("Escreva algo para registrar como observação.", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Gravando...";
+
+            fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({
+                    action: "addComment",
+                    token: sessionToken,
+                    protocolId: currentModalTarget.id,
+                    currentTab: currentModalTarget.tab,
+                    comment: text
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 200) {
+                    showToast("Observação anexada ao histórico físico.", "success");
+                    closeCommentModal();
+                    fetchData();
+                } else {
+                    showToast(data.error || "Erro no registro.", "error");
+                }
+            })
+            .catch(err => showToast("Conexão falhou: " + err.message, "error"))
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = "Confirmar Registro";
+            });
+        }
+
+        function openStatusModal(id, tab) {
+            currentModalTarget = { id, tab };
+            document.getElementById('status-modal-id').textContent = `Mover Protocolo #${id}`;
+            document.getElementById('modal-status').classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('modal-status').classList.add('hidden');
+        }
+
+        function submitStatusChange() {
+            const newStatus = document.getElementById('status-select').value;
+            const btn = document.getElementById('btn-submit-status');
+
+            btn.disabled = true;
+            btn.textContent = "Tramitando...";
+
+            fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({
+                    action: "updateStatus",
+                    token: sessionToken,
+                    protocolId: currentModalTarget.id,
+                    currentTab: currentModalTarget.tab,
+                    newStatus: newStatus
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 200) {
+                    showToast("Protocolo tramitado e recortado para a nova aba!", "success");
+                    closeStatusModal();
+                    fetchData();
+                } else {
+                    showToast(data.error || "Erro de transição de status.", "error");
+                }
+            })
+            .catch(err => showToast("Erro de envio: " + err.message, "error"))
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = "Confirmar Envio";
+            });
+        }
+
+        /**
+         * -------------------------------------------------------------------------
+         * ROTINAS DE IMPRESSÃO E RELATÓRIOS (PDF / CSV) COM NOME DO OPERADOR
+         * -------------------------------------------------------------------------
+         */
+        function exportToCSV() {
+            const protocols = cachedData[activeTab] || [];
+            generateCSVPayload(protocols, `Relatorio_Completo_${activeTab}`);
+        }
+
+        function exportSelectedCSV() {
+            const allProtocols = cachedData[activeTab] || [];
+            const selected = allProtocols.filter(p => selectedProtocols.has(p.id));
+            generateCSVPayload(selected, `Relatorio_Selecionados_${activeTab}`);
+        }
+
+        function generateCSVPayload(protocols, filename) {
+            if (protocols.length === 0) {
+                showToast("Não há dados para exportar.", "error");
+                return;
+            }
+
+            let csvContent = "\uFEFF"; 
+            csvContent += "ID;DATA/HORA;CLIENTE;BAIRRO;RESPONSÁVEL;STATUS;OBSERVAÇÕES\r\n";
+
+            protocols.forEach(p => {
+                const row = [
+                    p.id || '',
+                    p.data || '',
+                    (p.cliente || '').replace(/;/g, ','),
+                    (p.bairro || '').replace(/;/g, ','),
+                    (p.responsavel || '').replace(/;/g, ','),
+                    (p.status || '').replace(/;/g, ','),
+                    (p.observacoes || '').replace(/[\r\n]+/g, " | ").replace(/;/g, ',')
+                ];
+                csvContent += row.join(";") + "\r\n";
+            });
+
+            const timestamp = new Date().toLocaleString("pt-BR");
+            csvContent += "\r\n";
+            csvContent += `Documento emitido por:;${loggedUser};Cargo/Acesso:;${loggedRole};Selo de Auditoria:;SERIPM-MUNICIPAL-2026;Data de Emissão:;${timestamp}\r\n`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${filename}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Relatório CSV baixado.", "success");
+        }
+
+        function exportToPDF() {
+            const protocols = cachedData[activeTab] || [];
+            preparePrintDOM(protocols, `SETOR - ${activeTab}`);
+        }
+
+        function printSelected() {
+            const allProtocols = cachedData[activeTab] || [];
+            const selected = allProtocols.filter(p => selectedProtocols.has(p.id));
+            preparePrintDOM(selected, `PROTOCOLOS SELECIONADOS - ${activeTab}`);
+        }
+
+        function preparePrintDOM(protocols, subTitle) {
+            if (protocols.length === 0) {
+                showToast("Nenhum protocolo selecionado para impressão.", "error");
+                return;
+            }
+
+            const printArea = document.getElementById('print-section');
+            const timestamp = new Date().toLocaleString("pt-BR");
+
+            let rowsHTML = "";
+            protocols.forEach(p => {
+                rowsHTML += `
+                    <tr style="border-bottom: 1px solid #ddd; font-size: 11px;">
+                        <td style="padding: 8px; font-weight: bold;">#${p.id || ''}</td>
+                        <td style="padding: 8px;">${p.data || ''}</td>
+                        <td style="padding: 8px; font-weight: bold;">${p.cliente || ''}</td>
+                        <td style="padding: 8px;">${p.bairro || ''}</td>
+                        <td style="padding: 8px;">${p.responsavel || ''}</td>
+                        <td style="padding: 8px; font-weight: bold; text-transform: uppercase;">${p.status || ''}</td>
+                        <td style="padding: 8px; font-size: 9px; max-width: 250px;">${p.observacoes || ''}</td>
+                    </tr>
+                `;
+            });
+
+            printArea.innerHTML = `
+                <div style="font-family: 'Inter', sans-serif; color: #1e293b; padding: 20px;">
+                    <!-- Topo Oficial -->
+                    <div style="border-bottom: 3px double #1e3a8a; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h1 style="font-size: 16px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; color: #1e3a8a;">PREFEITURA MUNICIPAL DE MARICÁ</h1>
+                            <p style="font-size: 11px; margin: 3px 0 0 0; font-weight: bold; color: #475569; text-transform: uppercase;">SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA - SERIPM</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 9px; font-weight: 900; background-color: #f1f5f9; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; text-transform: uppercase;">Relatório Oficial</span>
+                        </div>
+                    </div>
+
+                    <h2 style="font-size: 13px; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 20px; color: #334155;">Documento de Triagem: ${subTitle}</h2>
+
+                    <!-- Tabela de Dados -->
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; margin-bottom: 40px;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9; border-bottom: 2px solid #1e3a8a; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                                <th style="padding: 8px;">ID</th>
+                                <th style="padding: 8px;">Data/Hora</th>
+                                <th style="padding: 8px;">Cliente</th>
+                                <th style="padding: 8px;">Bairro</th>
+                                <th style="padding: 8px;">Responsável</th>
+                                <th style="padding: 8px;">Status</th>
+                                <th style="padding: 8px;">Histórico de Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHTML}
+                        </tbody>
+                    </table>
+
+                    <!-- Assinatura e Metadados de Auditoria com Nome do Operador -->
+                    <div style="margin-top: 60px; border-top: 1px solid #cbd5e1; padding-top: 15px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-start; color: #64748b;">
+                        <div>
+                            <p style="margin: 0;"><strong>Operador Emissor:</strong> ${loggedUser}</p>
+                            <p style="margin: 3px 0 0 0;"><strong>Cargo / Credencial:</strong> ${loggedRole}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <p style="margin: 0;"><strong>Data de Emissão:</strong> ${timestamp}</p>
+                            <p style="margin: 3px 0 0 0; font-weight: bold; color: #1e3a8a;">SISTEMA CORPORATIVO SERIPM SERVERLESS</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            window.print();
+        }
+
+        /**
+         * -------------------------------------------------------------------------
+         * EXTRAS E UTILITÁRIOS
+         * -------------------------------------------------------------------------
+         */
+        function showToast(msg, type = "success") {
+            const toast = document.getElementById('toast-notification');
+            const icon = document.getElementById('toast-icon');
+            const message = document.getElementById('toast-msg');
+            
+            message.textContent = msg;
+            if (type === "success") {
+                icon.className = "text-emerald-400";
+                icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else {
+                icon.className = "text-rose-400";
+                icon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function saveGasUrl() {
+            const url = document.getElementById('gas-url-input').value.trim();
+            localStorage.setItem('proto_gas_url', url);
+            GAS_API_URL = url;
+            showToast("Vínculo com o Apps Script realizado com sucesso.", "success");
+            if (sessionToken) fetchData();
+        }
+
+        function loadDashboard() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-dashboard').classList.remove('hidden');
+            document.getElementById('header-username').textContent = loggedUser;
+            document.getElementById('header-user-role').textContent = `Nível: ${loggedRole}`;
+            fetchData();
+        }
+
+        if (sessionToken && loggedUser && loggedRole) {
+            loadDashboard();
+        }
+    </script>
+</body>
+</html>
