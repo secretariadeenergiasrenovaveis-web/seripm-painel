@@ -492,17 +492,17 @@
 
         // PAGINAÇÃO INDEPENDENTE EXTERNA PARA EMISSÃO E IMPRESSÃO DE RELATÓRIO ESTATÍSTICO
         function gerarRelatorioJanela() {
-            let statusMap = {};
-            let bairrosMap = {};
-
-            protocolsData.forEach(p => {
-                let st = p.status || "ABERTO";
-                statusMap[st] = (statusMap[st] || 0) + 1;
-
-                if (p.bairro) {
-                    let b = p.bairro.toUpperCase().trim();
-                    bairrosMap[b] = (bairrosMap[b] || 0) + 1;
-                }
+            if (protocolsData.length === 0) {
+                showToast("Não há dados na aba atual para gerar relatório.", "error");
+                return;
+            }
+            // Armazena os dados atuais na memória do navegador para a página de relatório puxar
+            sessionStorage.setItem('seripm_report_data', JSON.stringify(protocolsData));
+            sessionStorage.setItem('seripm_report_tab', currentTab);
+            
+            // Abre o novo arquivo
+            window.open('relatorio.html', '_blank');
+        }
             });
 
             let tRowsStatus = Object.entries(statusMap).map(([st, qtd]) => `
