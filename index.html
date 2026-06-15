@@ -10,17 +10,12 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         tr.expanded-row { background-color: #f8fafc; }
-        @media print {
-            .print\:hidden { display: none !important; }
-            body { background-color: white !important; font-size: 10px; }
-            .print-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
-        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
     <script>
-        // CONFIGURAÇÃO DA CHAVE DO PORTAL - ATUALIZE COM SEU ENDEREÇO DE DEPLOY /EXEC SE NECESSÁRIO
+        // CONFIGURAÇÃO DA CHAVE DO PORTAL - ENDEREÇO DO SEU DEPLOY /EXEC
         const API_URL = "https://script.google.com/macros/s/AKfycbypRWWMMAI8QC_jWHHAw-B1xklBIY9deSazulRC_rkZM3u65RiHMpQl6yG0xAXm8hQx/exec"; 
     </script>
 
@@ -49,7 +44,7 @@
         <header class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center print:hidden">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-headset text-blue-600 text-lg"></i>
-                <h1 class="text-base font-black tracking-tight text-slate-900">SERIPM <span class="text-xs font-normal text-slate-400">v3.5</span></h1>
+                <h1 class="text-base font-black tracking-tight text-slate-900">SERIPM <span class="text-xs font-normal text-slate-400">v3.8</span></h1>
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-right">
@@ -64,32 +59,8 @@
             
             <div class="flex gap-1 overflow-x-auto no-scrollbar mb-4 border-b border-slate-200 print:hidden" id="tab-menu"></div>
 
-            <div id="stats-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-6">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 print-card">
-                    <p class="text-[9px] uppercase font-black text-slate-400 tracking-wider">Total na Aba</p>
-                    <p id="stat-total" class="text-2xl font-black text-slate-900 mt-1">0</p>
+            <div id="stats-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6 print:hidden">
                 </div>
-                <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl shadow-sm print-card">
-                    <p class="text-[9px] uppercase font-black text-amber-600 tracking-wider">Abertos</p>
-                    <p id="stat-abertos" class="text-2xl font-black text-amber-700 mt-1">0</p>
-                </div>
-                <div class="bg-rose-50 border border-rose-200 p-4 rounded-2xl shadow-sm print-card">
-                    <p class="text-[9px] uppercase font-black text-rose-600 tracking-wider">Em Garantia</p>
-                    <p id="stat-garantia" class="text-2xl font-black text-rose-700 mt-1">0</p>
-                </div>
-                <div class="bg-blue-50 border border-blue-200 p-4 rounded-2xl shadow-sm print-card">
-                    <p class="text-[9px] uppercase font-black text-blue-600 tracking-wider">Telecom / Adm</p>
-                    <p id="stat-operacional" class="text-2xl font-black text-blue-700 mt-1">0</p>
-                </div>
-                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl shadow-sm print-card">
-                    <p class="text-[9px] uppercase font-black text-emerald-600 tracking-wider">Resolvidos / Conc.</p>
-                    <p id="stat-resolvidos" class="text-2xl font-black text-emerald-700 mt-1">0</p>
-                </div>
-                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl shadow-sm print-card">
-                    <p class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Cancelados</p>
-                    <p id="stat-cancelados" class="text-2xl font-black text-slate-700 mt-1">0</p>
-                </div>
-            </div>
 
             <div id="control-bar" class="flex flex-col md:flex-row justify-between gap-3 mb-4 print:hidden">
                 <div class="flex gap-2 w-full md:w-1/2">
@@ -100,7 +71,7 @@
                 </div>
                 <div class="flex gap-2 justify-end items-center" id="action-buttons-zone">
                     <span id="selected-count" class="text-xs font-bold text-slate-500 mr-2 hidden">0 selecionados</span>
-                    <button onclick="abrirRelatorioGeral()" class="bg-teal-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-teal-700 shadow-sm"><i class="fa-solid fa-chart-pie mr-1.5"></i>Relatório Geral</button>
+                    <button onclick="gerarRelatorioJanela()" class="bg-teal-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-teal-700 shadow-sm"><i class="fa-solid fa-chart-pie mr-1.5"></i>Relatório Geral</button>
                     <button onclick="window.print()" class="bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-700 shadow-sm"><i class="fa-solid fa-print mr-1.5"></i>Imprimir Seleção</button>
                     <button onclick="openModal('modal-novo')" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md"><i class="fa-solid fa-plus mr-1.5"></i>Novo Chamado</button>
                 </div>
@@ -150,41 +121,6 @@
                 </div>
             </div>
         </main>
-    </div>
-
-    <div id="modal-relatorio" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="p-4 border-b flex justify-between bg-slate-50 items-center print:hidden">
-                <h3 class="font-black text-slate-800 uppercase text-xs tracking-wider"><i class="fa-solid fa-chart-line text-teal-600 mr-2"></i>Relatório Geral Estatístico</h3>
-                <button onclick="closeModal('modal-relatorio')" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div id="relatorio-print-area" class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
-                <div class="text-center border-b pb-4">
-                    <h2 class="text-lg font-black text-slate-900 uppercase">Relatório de Gestão Operacional - SERIPM</h2>
-                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase">Emitido em: <span id="relatorio-data-emissao"></span></p>
-                </div>
-                <div class="grid grid-cols-2 gap-4 border-b pb-4">
-                    <div>
-                        <p class="font-bold text-slate-500 uppercase text-[9px]">Visão Setorial Relativa</p>
-                        <p class="text-base font-black text-slate-800 uppercase">Aba Ativa: <span id="relatorio-aba-nome" class="text-blue-600"></span></p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-center text-[10px] font-black">
-                        <div class="bg-amber-100 p-2 rounded-xl text-amber-800">ABERTOS: <span id="rep-abertos">0</span></div>
-                        <div class="bg-rose-100 p-2 rounded-xl text-rose-800">GARANTIA: <span id="rep-garantia">0</span></div>
-                        <div class="bg-emerald-100 p-2 rounded-xl text-emerald-800 font-bold">RESOLVIDOS: <span id="rep-resolvidos">0</span></div>
-                        <div class="bg-slate-100 p-2 rounded-xl text-slate-800">TOTAL FLUXO: <span id="rep-total">0</span></div>
-                    </div>
-                </div>
-                <div>
-                    <h4 class="font-black text-slate-900 uppercase mb-2">Distribuição de Atendimentos por Bairro (Aba Ativa)</h4>
-                    <div id="relatorio-bairros-list" class="space-y-1.5 font-bold text-slate-700"></div>
-                </div>
-            </div>
-            <div class="p-4 border-t bg-slate-50 flex justify-end gap-2 print:hidden">
-                <button onclick="closeModal('modal-relatorio')" class="px-4 py-2 border rounded-xl text-xs font-bold shadow-sm">Fechar</button>
-                <button onclick="window.print()" class="px-5 py-2 bg-teal-600 text-white text-xs font-black uppercase rounded-xl shadow-md"><i class="fa-solid fa-print mr-1"></i>Imprimir Relatório</button>
-            </div>
-        </div>
     </div>
 
     <div id="modal-novo" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
@@ -280,16 +216,21 @@
     </div>
 
     <script>
-        let currentUser = null, currentRole = null, currentTab = "ENTRADA", protocolsData = [], openRows = {}, selectedProtocols = {};
+        let currentUser = null, currentRole = null, currentTab = "ENTRADA", protocolsData = [], openRows = {}, selectedProtocols = {}, globalCounts = {};
 
         const ALL_TABS = ["ENTRADA", "URGENTE/ATRASADO", "ADMINISTRATIVO", "SUPERVISOR", "COM FUNCIONÁRIO", "IMPLANTAÇÃO", "OBRA", "TELECOM", "GARANTIA", "USUÁRIOS"];
+        const STATS_TABS = ["ENTRADA", "URGENTE/ATRASADO", "ADMINISTRATIVO", "SUPERVISOR", "COM FUNCIONÁRIO", "IMPLANTAÇÃO", "OBRA", "TELECOM", "GARANTIA"];
 
-        // FORMATADOR DE DATA E HORA DE ISO PARA FORMATO NACIONAL (00/00/0000 - 00:00)
+        // CONVERSOR E FORMATADOR SEGURO DE DATA/HORA BRASILEIRO
         function formatarDataHora(stringData) {
             if (!stringData) return "-";
             try {
-                const d = new Date(stringData);
-                if (isNaN(d.getTime())) return stringData; // Retorna o texto bruto caso já esteja formatado
+                let d = new Date(stringData);
+                if (isNaN(d.getTime())) {
+                    // Tenta limpar strings com formatos legados salvos na planilha física
+                    let limpa = stringData.toString().split(".")[0];
+                    return limpa;
+                }
                 const dia = String(d.getDate()).padStart(2, '0');
                 const mes = String(d.getMonth() + 1).padStart(2, '0');
                 const ano = d.getFullYear();
@@ -362,7 +303,23 @@
                 btn.onclick = () => switchTab(tab, btn.id);
                 container.appendChild(btn);
             });
+
+            // Construção dos Cards de Estatística (Um para cada aba)
+            buildStatsDashboard(allowedTabs.filter(t => STATS_TABS.includes(t)));
             executeLoad();
+        }
+
+        function buildStatsDashboard(visibleTabs) {
+            const container = document.getElementById('stats-container');
+            container.innerHTML = "";
+            visibleTabs.forEach(tab => {
+                container.innerHTML += `
+                    <div class="bg-white p-3 border border-slate-200 rounded-2xl shadow-sm">
+                        <p class="text-[9px] uppercase font-black text-slate-400 tracking-wider truncate" title="${tab}">${tab}</p>
+                        <p id="stat-card-${tab}" class="text-xl font-black text-slate-800 mt-0.5">...</p>
+                    </div>
+                `;
+            });
         }
 
         function switchTab(tabName, btnId) {
@@ -392,31 +349,37 @@
         async function loadProtocols() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = `<tr><td colspan="8" class="text-center p-8 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin text-xl"></i> Sincronizando dados...</td></tr>`;
+            
+            // Carrega a aba ativa
             const res = await fetchAPI({ action: "getProtocols", username: currentUser, role: currentRole, tab: currentTab });
             if (res.success) { 
                 protocolsData = res.data; 
-                calculateStats(protocolsData);
                 renderTable(protocolsData); 
+                updateDashboardCounters();
             } else { tbody.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-red-500 font-bold">Erro de sincronização.</td></tr>`; }
         }
 
-        // CÁLCULO DINÂMICO DE MÉTRICAS (DASHBOARD)
-        function calculateStats(data) {
-            let abertos = 0, garantia = 0, operacional = 0, resolvidos = 0, cancelados = 0;
-            data.forEach(p => {
-                const st = (p.status || "").toUpperCase();
-                if (st === "ABERTO") abertos++;
-                else if (st === "GARANTIA") garantia++;
-                else if (st === "RESOLVIDO" || st === "CONCLUÍDO") resolvidos++;
-                else if (st === "CANCELADO") cancelados++;
-                else operacional++;
+        // ATUALIZADOR ASSÍNCRONO PARALELO DE CONTAGEM CARD POR CARD (SEM TRAVAR)
+        async function updateDashboardCounters() {
+            let tabsToFetch = [];
+            if (currentRole === "ATENDENTE") tabsToFetch = ["ENTRADA"];
+            else if (currentRole === "ADMINISTRATIVO") tabsToFetch = ["ENTRADA", "URGENTE/ATRASADO", "ADMINISTRATIVO", "COM FUNCIONÁRIO", "IMPLANTAÇÃO", "OBRA", "TELECOM", "GARANTIA"];
+            else if (currentRole === "SUPERVISOR") tabsToFetch = STATS_TABS;
+
+            tabsToFetch.forEach(async (tab) => {
+                if(tab === currentTab) {
+                    globalCounts[tab] = protocolsData.length;
+                    let el = document.getElementById(`stat-card-${tab}`);
+                    if(el) el.textContent = protocolsData.length;
+                } else {
+                    const res = await fetchAPI({ action: "getProtocols", username: currentUser, role: currentRole, tab: tab });
+                    if(res.success) {
+                        globalCounts[tab] = res.data.length;
+                        let el = document.getElementById(`stat-card-${tab}`);
+                        if(el) el.textContent = res.data.length;
+                    }
+                }
             });
-            document.getElementById('stat-total').textContent = data.length;
-            document.getElementById('stat-abertos').textContent = abertos;
-            document.getElementById('stat-garantia').textContent = garantia;
-            document.getElementById('stat-operacional').textContent = operacional;
-            document.getElementById('stat-resolvidos').textContent = resolvidos;
-            document.getElementById('stat-cancelados').textContent = cancelados;
         }
 
         function renderTable(data) {
@@ -469,19 +432,20 @@
                         <td colspan="8" class="p-4 bg-slate-50 border-l-4 border-blue-600">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-bold">
                                 <div class="bg-white p-3 rounded-xl border">
-                                    <p class="text-[9px] uppercase text-slate-400 font-black mb-1"><i class="fa-solid fa-map-pin mr-1"></i>Localização Completa</p>
-                                    <p class="text-slate-700 uppercase"><b>Rua/Endereço:</b> ${p.endereco}</p>
-                                    <p class="text-slate-700 uppercase mt-1"><b>Ponto de Referência:</b> ${p.referencia || 'NÃO INFORMADA'}</p>
+                                    <p class="text-[9px] uppercase text-slate-400 font-black mb-1"><i class="fa-solid fa-map-pin mr-1"></i>Localização Detalhada</p>
+                                    <p class="text-slate-700 uppercase"><b>Bairro:</b> ${p.bairro}</p>
+                                    <p class="text-slate-700 uppercase mt-1"><b>Endereço/Rua:</b> ${p.endereco}</p>
+                                    <p class="text-slate-700 uppercase mt-1"><b>Ponto de Referência:</b> ${p.referencia || 'NÃO INFORMADO'}</p>
                                 </div>
                                 <div class="bg-white p-3 rounded-xl border">
-                                    <p class="text-[9px] uppercase text-slate-400 font-black mb-1"><i class="fa-solid fa-id-card mr-1"></i>Documentos e Contato</p>
-                                    <p class="text-slate-700"><b>Telefone:</b> ${p.telefone || 'NÃO PREENCHIDO'}</p>
-                                    <p class="text-slate-700 mt-1"><b>CPF:</b> ${p.cpf || 'NÃO INFORMADO'}</p>
+                                    <p class="text-[9px] uppercase text-slate-400 font-black mb-1"><i class="fa-solid fa-id-card mr-1"></i>Contato Operacional</p>
+                                    <p class="text-slate-700"><b>Telefone:</b> ${p.telefone || '-'}</p>
+                                    <p class="text-slate-700 mt-1"><b>CPF do Solicitante:</b> ${p.cpf || '-'}</p>
                                 </div>
                                 <div class="bg-white p-3 rounded-xl border">
-                                    <p class="text-[9px] uppercase text-slate-400 font-black mb-1"><i class="fa-solid fa-clipboard-list mr-1"></i>Serviço e Observações</p>
+                                    <p class="text-[9px] uppercase text-slate-400 font-black mb-1"><i class="fa-solid fa-clipboard-list mr-1"></i>Serviço Aplicado</p>
                                     <p class="text-slate-700 uppercase"><b>Solicitação:</b> ${p.solicitacao}</p>
-                                    <p class="text-slate-600 uppercase mt-1 font-normal"><b>Detalhes:</b> ${p.detalhes || 'SEM DETALHES EXTRA'}</p>
+                                    <p class="text-slate-600 uppercase mt-1 font-normal"><b>Detalhes Adicionais:</b> ${p.detalhes || '-'}</p>
                                     <p class="text-blue-700 uppercase mt-1.5 pt-1.5 border-t text-[11px]"><b>OBSERVAÇÃO INTERNA:</b> ${p.obs || '-'}</p>
                                 </div>
                             </div>
@@ -492,7 +456,6 @@
             tbody.innerHTML = html;
         }
 
-        // CONTROLE DE SELEÇÃO POR CAIXAS DE SELEÇÃO
         function toggleSelectRow(chk, id) {
             if (chk.checked) selectedProtocols[id] = true;
             else delete selectedProtocols[id];
@@ -524,50 +487,92 @@
                 (p.protocolo||'').toLowerCase().includes(val) || (p.solicitante||'').toLowerCase().includes(val) ||
                 (p.bairro||'').toLowerCase().includes(val) || (p.endereco||'').toLowerCase().includes(val)
             );
-            calculateStats(filtered);
             renderTable(filtered);
         }
 
-        // EMISSÃO DE RELATÓRIO GERAL ESTATÍSTICO
-        function abrirRelatorioGeral() {
-            document.getElementById('relatorio-data-emissao').textContent = new Date().toLocaleString('pt-BR');
-            document.getElementById('relatorio-aba-nome').textContent = currentTab;
-            
-            let abertos = 0, garantia = 0, resolvidos = 0;
+        // PAGINAÇÃO INDEPENDENTE EXTERNA PARA EMISSÃO E IMPRESSÃO DE RELATÓRIO ESTATÍSTICO
+        function gerarRelatorioJanela() {
+            let statusMap = {};
             let bairrosMap = {};
 
             protocolsData.forEach(p => {
-                const st = (p.status || "").toUpperCase();
-                if (st === "ABERTO") abertos++;
-                else if (st === "GARANTIA") garantia++;
-                else if (st === "RESOLVIDO" || st === "CONCLUÍDO") resolvidos++;
+                let st = p.status || "ABERTO";
+                statusMap[st] = (statusMap[st] || 0) + 1;
 
                 if (p.bairro) {
-                    bairrosMap[p.bairro] = (bairrosMap[p.bairro] || 0) + 1;
+                    let b = p.bairro.toUpperCase().trim();
+                    bairrosMap[b] = (bairrosMap[b] || 0) + 1;
                 }
             });
 
-            document.getElementById('rep-abertos').textContent = abertos;
-            document.getElementById('rep-garantia').textContent = garantia;
-            document.getElementById('rep-resolvidos').textContent = resolvidos;
-            document.getElementById('rep-total').textContent = protocolsData.length;
+            let tRowsStatus = Object.entries(statusMap).map(([st, qtd]) => `
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; font-weight: bold; text-transform: uppercase;">${st}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${qtd}</td>
+                </tr>
+            `).join('');
 
-            const bList = document.getElementById('relatorio-bairros-list');
-            bList.innerHTML = "";
-            const sortedBairros = Object.entries(bairrosMap).sort((a,b) => b[1] - a[1]);
-            
-            if(sortedBairros.length === 0) { bList.innerHTML = "<p class='text-slate-400'>Nenhum dado de bairro registrado.</p>"; }
-            else {
-                sortedBairros.forEach(([bairro, qtd]) => {
-                    bList.innerHTML += `
-                        <div class="flex justify-between border-b pb-1 text-slate-600">
-                            <span class="uppercase">${bairro}</span>
-                            <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-800">${qtd} chamados</span>
-                        </div>
-                    `;
-                });
-            }
-            openModal('modal-relatorio');
+            let tRowsBairros = Object.entries(bairrosMap).sort((a,b) => b[1] - a[1]).map(([b, qtd]) => `
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-transform: uppercase;">${b}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold; color: #1e3a8a;">${qtd} chamados</td>
+                </tr>
+            `).join('');
+
+            // Abertura de outra página limpa contendo apenas as estatísticas de impressão
+            let janelaRelatorio = window.open("", "_blank");
+            janelaRelatorio.document.write(`
+                <html>
+                <head>
+                    <title>Relatório Estatístico - SERIPM</title>
+                    <style>
+                        body { font-family: sans-serif; color: #334155; padding: 30px; font-size: 12px; }
+                        .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 25px; }
+                        .title { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 0; color: #0f172a; }
+                        .subtitle { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-top: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+                        th { background-color: #f1f5f9; padding: 10px; border: 1px solid #cbd5e1; font-size: 10px; text-transform: uppercase; text-align: left; }
+                        h3 { text-transform: uppercase; font-size: 12px; font-weight: 800; border-left: 4px solid #2563eb; padding-left: 8px; color: #1e293b; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2 class="title">Relatório Estatístico de Atendimentos</h2>
+                        <div class="subtitle">Aba Operacional Analisada: ${currentTab} | Gerado em: ${new Date().toLocaleString('pt-BR')}</div>
+                    </div>
+                    
+                    <h3>Volumetria de Status na Fila</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mapeamento de Status</th><th style="text-align: center; width: 150px;">Quantidade</th></tr>
+                        </thead>
+                        <tbody>
+                            ${tRowsStatus}
+                            <tr style="background-color: #f8fafc;">
+                                <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 900; text-transform: uppercase;">Volume Total Acumulado</td>
+                                <td style="padding: 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: 900; color: #2563eb;">${protocolsData.length}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Distribuição Geográfica por Bairro</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Bairro Atendido</th><th style="text-align: center; width: 200px;">Densidade de Chamados</th></tr>
+                        </thead>
+                        <tbody>
+                            ${tRowsBairros}
+                        </tbody>
+                    </table>
+
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            janelaRelatorio.document.close();
         }
 
         async function submitProtocolo(e) {
@@ -599,7 +604,6 @@
             else { showToast("Erro operacional.", "error"); }
         }
 
-        // QUADRO DE OPERADORES CRUDS
         async function loadUsers() {
             const tbody = document.getElementById('user-table-body');
             tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando operadores...</td></tr>`;
