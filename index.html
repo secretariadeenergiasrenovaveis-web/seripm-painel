@@ -18,27 +18,37 @@
 
     <script>
         window.onload = () => {
-    const savedUser = localStorage.getItem('seripm_user');
-    if (savedUser) {
-        currentUser = savedUser;
-        currentRole = localStorage.getItem('seripm_role');
-        userAllowedTabs = localStorage.getItem('seripm_tabs').split(',');
-        carregarDashboard();
-    }
-};
+            const savedUser = localStorage.getItem('seripm_user');
+            if (savedUser) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('user-name').textContent = savedUser;
+                document.getElementById('user-role').textContent = "Perfil: " + localStorage.getItem('seripm_role');
+            }
+        };
 
-function carregarDashboard() {
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
-    document.getElementById('user-name').textContent = currentUser;
-    document.getElementById('user-role').textContent = "Perfil: " + currentRole;
-    buildTabMenu();
-}
+        async function fazerLogin() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
 
-function logout() {
-    localStorage.clear();
-    location.reload();
-}
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'login', user: u, pass: p })
+            }).then(r => r.json());
+
+            if (res.success) {
+                localStorage.setItem('seripm_user', u);
+                localStorage.setItem('seripm_role', res.role);
+                location.reload();
+            } else {
+                alert("Erro de autenticação!");
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
         // COLOQUE SUA URL AQUI
         const API_URL = "https://script.google.com/macros/s/AKfycbypRWWMMAI8QC_jWHHAw-B1xklBIY9deSazulRC_rkZM3u65RiHMpQl6yG0xAXm8hQx/exec"; 
     </script>
@@ -54,9 +64,9 @@ function logout() {
                 <h1 class="text-2xl font-black text-slate-900 tracking-tight">SERIPM MARICÁ</h1>
                 <p class="text-[10px] text-slate-400 font-black tracking-widest uppercase mt-1">Plataforma Operacional</p>
             </div>
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <input type="text" id="login-user" placeholder="Matrícula / Operador" required class="w-full border border-slate-200 rounded-xl p-3 text-xs font-bold uppercase tracking-wide bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="password" id="login-pass" placeholder="Código de Segurança" required class="w-full border border-slate-200 rounded-xl p-3 text-xs font-bold bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+            <form onsubmit="handle(event)" class="space-y-4">
+                <input type="text" id="-user" placeholder="Matrícula / Operador" required class="w-full border border-slate-200 rounded-xl p-3 text-xs font-bold uppercase tracking-wide bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="-pass" placeholder="Código de Segurança" required class="w-full border border-slate-200 rounded-xl p-3 text-xs font-bold bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
                 <button type="submit" id="btn-login" class="w-full bg-blue-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg hover:bg-blue-700 transition">Autenticar Entrada</button>
             </form>
         </div>
