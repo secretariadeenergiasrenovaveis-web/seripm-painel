@@ -17,6 +17,28 @@
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
     <script>
+        window.onload = () => {
+    const savedUser = localStorage.getItem('seripm_user');
+    if (savedUser) {
+        currentUser = savedUser;
+        currentRole = localStorage.getItem('seripm_role');
+        userAllowedTabs = localStorage.getItem('seripm_tabs').split(',');
+        carregarDashboard();
+    }
+};
+
+function carregarDashboard() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
+    document.getElementById('user-name').textContent = currentUser;
+    document.getElementById('user-role').textContent = "Perfil: " + currentRole;
+    buildTabMenu();
+}
+
+function logout() {
+    localStorage.clear();
+    location.reload();
+}
         // COLOQUE SUA URL AQUI
         const API_URL = "https://script.google.com/macros/s/AKfycbypRWWMMAI8QC_jWHHAw-B1xklBIY9deSazulRC_rkZM3u65RiHMpQl6yG0xAXm8hQx/exec"; 
     </script>
