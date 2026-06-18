@@ -7,13 +7,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js para os Gráficos Estatísticos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Animação suave para os modais */
         .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Estilos específicos para Impressão / PDF do Relatório */
+        @media print {
+            aside, header, #btn-exportar, #login-screen { display: none !important; }
+            #dashboard, main { height: auto !important; overflow: visible !important; display: block !important; }
+            body { background: white; }
+            .shadow-sm, .shadow-md, .border { border: none !important; shadow: none !important; }
+            canvas { max-width: 100% !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased overflow-hidden">
@@ -33,24 +44,19 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Utilizador</label>
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-user text-slate-400"></i>
-                        </div>
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-user text-slate-400"></i></div>
                         <input type="text" id="user" class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition outline-none" placeholder="O seu utilizador">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Palavra-passe</label>
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-lock text-slate-400"></i>
-                        </div>
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-lock text-slate-400"></i></div>
                         <input type="password" id="pass" class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition outline-none" placeholder="••••••••">
                     </div>
                 </div>
-                <button onclick="fazerLogin()" id="btn-login" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition flex justify-center items-center gap-2">
-                    <span>Aceder ao Sistema</span>
-                    <i class="fas fa-arrow-right"></i>
+                <button onclick="fazerLogin()" id="btn-login" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition flex justify-center items-center gap-2">
+                    <span>Aceder ao Sistema</span><i class="fas fa-arrow-right"></i>
                 </button>
             </div>
         </div>
@@ -71,18 +77,23 @@
                 </div>
             </div>
 
-            <div class="p-4 flex-1 flex flex-col">
+            <div class="p-4 flex-1 flex flex-col overflow-y-auto no-scrollbar">
                 <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3 ml-2">Departamentos</p>
-                <nav id="menu-nav" class="space-y-1 overflow-y-auto no-scrollbar flex-1">
-                    <!-- Botões gerados dinamicamente -->
+                <nav id="menu-nav" class="space-y-1 mb-6">
+                    <!-- Botões de abas gerados dinamicamente -->
+                </nav>
+
+                <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3 ml-2 pt-4 border-t border-slate-800">Relatórios Gerenciais</p>
+                <nav class="space-y-1">
+                    <button id="btn-menu-ESTATÍSTICAS" class="w-full text-left px-4 py-3 rounded-xl transition flex items-center gap-3 font-medium mb-1 text-slate-300 hover:bg-slate-800 hover:text-white" onclick="trocarAba('ESTATÍSTICAS', false)">
+                        <i class="fas fa-chart-pie w-5 text-center text-emerald-400"></i> <span>Dashboard Estatístico</span>
+                    </button>
                 </nav>
             </div>
 
             <div class="p-4 border-t border-slate-800 bg-slate-900">
                 <div class="flex items-center gap-3 mb-4 px-2">
-                    <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-lg font-bold text-slate-300">
-                        <i class="fas fa-user"></i>
-                    </div>
+                    <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-lg font-bold text-slate-300"><i class="fas fa-user"></i></div>
                     <div class="overflow-hidden">
                         <p id="display-user" class="text-sm font-semibold truncate text-white"></p>
                         <p id="display-role" class="text-xs text-blue-400 truncate"></p>
@@ -101,9 +112,8 @@
             <header class="bg-white shadow-sm z-10 p-4 md:p-6 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-3">
                     <h2 id="tab-title" class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fas fa-layer-group text-blue-600"></i> <span id="title-text">Painel Principal</span>
+                        <i class="fas fa-layer-group text-blue-600" id="title-icon"></i> <span id="title-text">Painel Principal</span>
                     </h2>
-                    <!-- Indicador de sincronização -->
                     <span id="sync-indicator" class="hidden text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded-full flex items-center gap-1">
                         <i class="fas fa-sync fa-spin"></i> A Sincronizar
                     </span>
@@ -113,188 +123,174 @@
                     <button class="bg-white border border-slate-300 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm" onclick="trocarAba(currentTab, false)">
                         <i class="fas fa-sync-alt"></i> Atualizar
                     </button>
-                    <!-- O botão Novo Protocolo aparecerá apenas na aba ENTRADA ou OBRA -->
-                    <button id="btn-novo-protocolo" class="hidden bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition shadow-md flex items-center gap-2 font-medium" onclick="abrirModalNovo()">
-                        <i class="fas fa-plus"></i> Novo Protocolo
-                    </button>
+                    <!-- Botões de Ação Dinâmicos -->
+                    <div id="header-actions-container" class="flex gap-3">
+                        <button id="btn-novo-protocolo" class="hidden bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition shadow-md flex items-center gap-2 font-medium" onclick="abrirModalNovo()">
+                            <i class="fas fa-plus"></i> Novo Protocolo
+                        </button>
+                        <div id="export-actions" class="hidden flex gap-2">
+                            <button onclick="exportarCSV()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-md flex items-center gap-2 text-sm font-medium">
+                                <i class="fas fa-file-excel"></i> Excel
+                            </button>
+                            <button onclick="window.print()" class="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-900 transition shadow-md flex items-center gap-2 text-sm font-medium">
+                                <i class="fas fa-print"></i> Relatório PDF
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <!-- Scrollable Content Area -->
             <div class="flex-1 overflow-y-auto p-6" id="main-scroll-area">
                 
-                <!-- KPI Cards (Resumo) -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" id="kpi-container">
-                    <!-- Gerados via JS -->
+                <!-- ================= VISTA DE TABELA PADRÃO ================= -->
+                <div id="table-view-container" class="flex flex-col gap-6">
+                    <!-- KPI Cards (Resumo da Tabela) -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-container"></div>
+
+                    <!-- Tabela e Ferramentas -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
+                        <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50 rounded-t-xl">
+                            <h3 class="text-lg font-semibold text-slate-700">Registos <span id="total-badge" class="ml-2 bg-blue-100 text-blue-700 py-0.5 px-2.5 rounded-full text-xs">0</span></h3>
+                            <div class="relative w-full md:w-80">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-search text-slate-400"></i></div>
+                                <input type="text" id="search-input" onkeyup="filtrarTabela()" class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Pesquisar...">
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto relative min-h-[300px]">
+                            <div id="content-area" class="w-full"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Tabela e Ferramentas -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
-                    <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50 rounded-t-xl">
-                        <h3 class="text-lg font-semibold text-slate-700">Registos Encontrados <span id="total-badge" class="ml-2 bg-blue-100 text-blue-700 py-0.5 px-2.5 rounded-full text-xs">0</span></h3>
-                        <div class="relative w-full md:w-80">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-search text-slate-400"></i>
-                            </div>
-                            <input type="text" id="search-input" onkeyup="filtrarTabela()" class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Pesquisar protocolo, nome, morada...">
+                <!-- ================= VISTA DE ESTATÍSTICAS (DASHBOARD) ================= -->
+                <div id="stats-view-container" class="hidden flex-col gap-6 w-full pb-10">
+                    
+                    <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-bold mb-1">Visão Geral dos Protocolos</h2>
+                            <p class="text-slate-400 text-sm">Dados agregados em tempo real a partir da Entrada Principal.</p>
+                        </div>
+                        <div class="text-right hidden sm:block">
+                            <p class="text-4xl font-bold text-emerald-400" id="dash-taxa-resolucao">0%</p>
+                            <p class="text-xs uppercase tracking-wider text-slate-400">Taxa de Resolução</p>
                         </div>
                     </div>
-                    
-                    <div class="overflow-x-auto relative min-h-[300px]">
-                        <div id="content-area" class="w-full">
-                            <div class="flex flex-col items-center justify-center h-64 text-slate-400">
-                                <i class="fas fa-hand-pointer text-4xl mb-4 text-slate-300"></i>
-                                <p>Selecione um departamento no menu lateral.</p>
+
+                    <!-- Mini Cards Dashboard -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="dash-kpis">
+                        <!-- Preenchido via JS -->
+                    </div>
+
+                    <!-- Gráficos Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Pizza: Status -->
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-1 flex flex-col">
+                            <h3 class="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-chart-pie text-blue-500"></i> Distribuição por Status</h3>
+                            <div class="relative flex-1 w-full flex items-center justify-center min-h-[250px]">
+                                <canvas id="chartStatus"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Barras: Top Bairros -->
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col">
+                            <h3 class="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-map-marked-alt text-amber-500"></i> Top 10 Bairros Críticos</h3>
+                            <div class="relative flex-1 w-full min-h-[250px]">
+                                <canvas id="chartBairros"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Linha: Evolução Temporal -->
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-3 flex flex-col">
+                            <h3 class="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-chart-line text-emerald-500"></i> Evolução de Abertura de Chamados (Últimos Dias)</h3>
+                            <div class="relative flex-1 w-full h-72">
+                                <canvas id="chartTimeline"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </main>
     </div>
 
-    <!-- MODAL: Visualizar Detalhes & Atualizar Status -->
+    <!-- MODAIS E RESTANTE DO CÓDIGO (NOVO PROTOCOLO E DETALHES)... -->
+    <!-- (Mantido exatamente como na versão anterior para não perder as funcionalidades) -->
+    
+    <!-- MODAL: Visualizar Detalhes -->
     <div id="modal-detalhes" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="modal-box">
-            
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                <div>
-                    <h3 class="text-xl font-bold text-slate-800">Detalhes do Protocolo</h3>
-                    <p class="text-sm text-slate-500 mt-1">Gestão e acompanhamento</p>
-                </div>
-                <button onclick="fecharModal()" class="text-slate-400 hover:text-red-500 bg-white hover:bg-red-50 p-2 rounded-full transition">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <div><h3 class="text-xl font-bold text-slate-800">Detalhes do Protocolo</h3><p class="text-sm text-slate-500 mt-1">Gestão e acompanhamento</p></div>
+                <button onclick="fecharModal()" class="text-slate-400 hover:text-red-500 bg-white hover:bg-red-50 p-2 rounded-full transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-            
-            <div class="p-6 overflow-y-auto" id="modal-body">
-                <!-- Conteúdo injetado via JS -->
-            </div>
-            
-            <!-- Ações do Footer (Status) -->
-            <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex flex-col sm:flex-row justify-between items-center gap-3" id="modal-footer-actions">
-                <!-- Dropdown Status e botões de ação injetados via JS -->
-            </div>
+            <div class="p-6 overflow-y-auto" id="modal-body"></div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex flex-col sm:flex-row justify-between items-center gap-3" id="modal-footer-actions"></div>
         </div>
     </div>
 
     <!-- MODAL: Novo Protocolo -->
     <div id="modal-novo" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="modal-novo-box">
-            
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-600 text-white rounded-t-2xl">
-                <div>
-                    <h3 class="text-xl font-bold">Criar Novo Protocolo</h3>
-                    <p class="text-sm text-blue-100 mt-1 text-opacity-80">Preencha os dados do cidadão e do serviço</p>
-                </div>
-                <button onclick="fecharModalNovo()" class="text-blue-100 hover:text-white bg-blue-700 hover:bg-red-500 p-2 rounded-full transition">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <div><h3 class="text-xl font-bold">Criar Novo Protocolo</h3><p class="text-sm text-blue-100 mt-1 text-opacity-80">Preencha os dados do cidadão e do serviço</p></div>
+                <button onclick="fecharModalNovo()" class="text-blue-100 hover:text-white bg-blue-700 hover:bg-red-500 p-2 rounded-full transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-            
             <div class="p-6 overflow-y-auto bg-slate-50">
                 <form id="form-novo" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nome do Solicitante <span class="text-red-500">*</span></label>
-                            <input type="text" id="novo_solicitante" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">CPF</label>
-                            <input type="text" id="novo_cpf" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Apenas números">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Telefone / Contacto</label>
-                            <input type="text" id="novo_telefone" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <div class="md:col-span-2 pt-2 border-t border-slate-200 mt-2">
-                            <h4 class="text-sm font-bold text-slate-700 mb-3"><i class="fas fa-map-marker-alt text-blue-500 mr-1"></i> Localização do Problema</h4>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Endereço do Problema <span class="text-red-500">*</span></label>
-                            <input type="text" id="novo_endereco" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Bairro <span class="text-red-500">*</span></label>
-                            <input type="text" id="novo_bairro" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Ponto de Referência</label>
-                            <input type="text" id="novo_referencia" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-
-                        <div class="md:col-span-2 pt-2 border-t border-slate-200 mt-2">
-                            <h4 class="text-sm font-bold text-slate-700 mb-3"><i class="fas fa-tools text-blue-500 mr-1"></i> Detalhes da Solicitação</h4>
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo de Serviço / Solicitação <span class="text-red-500">*</span></label>
-                            <input type="text" id="novo_servico" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Detalhes Adicionais</label>
-                            <textarea id="novo_detalhes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Observações Internas</label>
-                            <textarea id="novo_observacoes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                        </div>
+                        <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nome do Solicitante *</label><input type="text" id="novo_solicitante" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">CPF</label><input type="text" id="novo_cpf" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Apenas números"></div>
+                        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Telefone</label><input type="text" id="novo_telefone" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div class="md:col-span-2 pt-2 border-t border-slate-200 mt-2"><h4 class="text-sm font-bold text-slate-700 mb-3"><i class="fas fa-map-marker-alt text-blue-500 mr-1"></i> Localização do Problema</h4></div>
+                        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Endereço do Problema *</label><input type="text" id="novo_endereco" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Bairro *</label><input type="text" id="novo_bairro" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Ponto de Referência</label><input type="text" id="novo_referencia" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div class="md:col-span-2 pt-2 border-t border-slate-200 mt-2"><h4 class="text-sm font-bold text-slate-700 mb-3"><i class="fas fa-tools text-blue-500 mr-1"></i> Detalhes da Solicitação</h4></div>
+                        <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo de Serviço / Solicitação *</label><input type="text" id="novo_servico" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Detalhes Adicionais</label><textarea id="novo_detalhes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea></div>
+                        <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Observações Internas</label><textarea id="novo_observacoes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea></div>
                     </div>
                 </form>
             </div>
-            
             <div class="p-4 border-t border-slate-200 bg-white rounded-b-2xl flex justify-end gap-3">
-                <button onclick="fecharModalNovo()" class="px-5 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition">
-                    Cancelar
-                </button>
-                <button onclick="salvarNovoProtocolo()" id="btn-salvar-novo" class="px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition flex items-center gap-2 shadow-sm">
-                    <i class="fas fa-save"></i> Guardar Protocolo
-                </button>
+                <button onclick="fecharModalNovo()" class="px-5 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition">Cancelar</button>
+                <button onclick="salvarNovoProtocolo()" id="btn-salvar-novo" class="px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition flex items-center gap-2 shadow-sm"><i class="fas fa-save"></i> Guardar Protocolo</button>
             </div>
         </div>
     </div>
 
+    <!-- SCRIPTS CORE -->
     <script>
-        // CONFIGURAÇÕES GERAIS
         const API_URL = "https://script.google.com/macros/s/AKfycbz6wLfSYiLQqlGycytiMrX4ieVOGTnq9B8r2hpZToOlCpygK16voVbGsw9C6XrbGskp/exec";
         const ALL_TABS = ['ENTRADA', 'ADMINISTRATIVO', 'SUPERVISOR', 'COM FUNCIONÁRIO', 'IMPLANTAÇÃO', 'OBRA', 'GARANTIA', 'USUÁRIOS'];
-        
-        const TAB_ICONS = {
-            'ENTRADA': 'fa-inbox', 'ADMINISTRATIVO': 'fa-folder-open', 'SUPERVISOR': 'fa-user-tie',
-            'COM FUNCIONÁRIO': 'fa-users-cog', 'IMPLANTAÇÃO': 'fa-tools', 'OBRA': 'fa-hard-hat',
-            'GARANTIA': 'fa-shield-alt', 'USUÁRIOS': 'fa-users'
-        };
+        const TAB_ICONS = { 'ENTRADA':'fa-inbox', 'ADMINISTRATIVO':'fa-folder-open', 'SUPERVISOR':'fa-user-tie', 'COM FUNCIONÁRIO':'fa-users-cog', 'IMPLANTAÇÃO':'fa-tools', 'OBRA':'fa-hard-hat', 'GARANTIA':'fa-shield-alt', 'USUÁRIOS':'fa-users' };
 
         let currentData = []; 
         let currentTab = "";
-        let syncTimer = null; // Timer da Auto-sincronização
+        let syncTimer = null; 
+        
+        // Instâncias dos Gráficos para poderem ser destruídas e re-desenhadas
+        let chartInstStatus = null;
+        let chartInstBairros = null;
+        let chartInstTimeline = null;
 
-        // INICIALIZAÇÃO
         window.onload = () => {
             const savedUser = localStorage.getItem('seripm_user');
             if (savedUser) iniciarSessao(savedUser, localStorage.getItem('seripm_role'));
         };
 
-        // LOGIN
+        // ... LOGIN LOGIC ...
         async function fazerLogin() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
             const btn = document.getElementById('btn-login');
-            
             if (!u || !p) { alert("Preencha as suas credenciais."); return; }
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> A validar...`;
-            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> A validar...`; btn.disabled = true;
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "login", username: u, password: p })
-                });
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", username: u, password: p }) });
                 const result = await response.json();
-
                 if (result.success) {
                     let perfil = result.role ? result.role.toUpperCase() : "";
                     if (perfil === 'SUPER ADMINISTRADOR' || perfil === 'ADMINISTRADOR') perfil = 'SUPERVISOR';
@@ -302,16 +298,8 @@
                     localStorage.setItem('seripm_role', perfil);
                     localStorage.setItem('seripm_tabs', result.allowedTabs || "");
                     iniciarSessao(result.username, perfil);
-                } else {
-                    alert("Erro: " + result.error);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            } catch (e) {
-                alert("Erro de comunicação com a base de dados.");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
+                } else { alert("Erro: " + result.error); btn.innerHTML = `<span>Aceder ao Sistema</span><i class="fas fa-arrow-right"></i>`; btn.disabled = false; }
+            } catch (e) { alert("Erro de comunicação com a base de dados."); btn.disabled = false; }
         }
 
         function iniciarSessao(username, role) {
@@ -322,20 +310,14 @@
             construirMenu();
         }
 
-        function logout() { 
-            clearInterval(syncTimer);
-            localStorage.clear(); 
-            location.reload(); 
-        }
+        function logout() { clearInterval(syncTimer); localStorage.clear(); location.reload(); }
 
-        // CONSTRUÇÃO DO MENU
+        // ... MENU LOGIC ...
         function construirMenu() {
             const nav = document.getElementById('menu-nav');
             nav.innerHTML = ''; 
-            
             const role = localStorage.getItem('seripm_role');
-            const allowedRaw = localStorage.getItem('seripm_tabs') || "";
-            const allowed = allowedRaw.split(',').map(s => s.trim().toUpperCase());
+            const allowed = (localStorage.getItem('seripm_tabs') || "").split(',').map(s => s.trim().toUpperCase());
             let abasAdicionadas = 0;
 
             ALL_TABS.forEach(aba => {
@@ -352,56 +334,63 @@
             });
 
             if (abasAdicionadas > 0) {
-                const primeiroBotao = nav.querySelector('button');
-                if (primeiroBotao) primeiroBotao.click();
+                // Carrega a aba "ESTATÍSTICAS" primeiro para mostrar o dashboard ou a primeira aba da lista
+                trocarAba('ESTATÍSTICAS', false); 
             } else {
-                nav.innerHTML = `<div class="p-3 bg-red-900/30 text-red-400 text-sm rounded-lg border border-red-800/50">Sem acesso a departamentos configurado.</div>`;
+                nav.innerHTML = `<div class="p-3 bg-red-900/30 text-red-400 text-sm rounded-lg border border-red-800/50">Sem acesso configurado.</div>`;
             }
         }
 
         function atualizarMenuAtivo(aba) {
-            document.querySelectorAll('#menu-nav button').forEach(btn => {
+            // Reset todos os botões do menu
+            const botoes = document.querySelectorAll('aside nav button');
+            botoes.forEach(btn => {
                 btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
                 btn.classList.add('text-slate-300', 'hover:bg-slate-800');
-                btn.querySelector('i').classList.remove('text-white');
-                btn.querySelector('i').classList.add('text-slate-400');
+                const i = btn.querySelector('i');
+                if(i) { i.classList.remove('text-white'); if(!i.classList.contains('text-emerald-400')) i.classList.add('text-slate-400'); }
             });
+            
             const btnAtivo = document.getElementById(`btn-menu-${aba}`);
             if (btnAtivo) {
                 btnAtivo.classList.remove('text-slate-300', 'hover:bg-slate-800');
                 btnAtivo.classList.add('bg-blue-600', 'text-white', 'shadow-md');
-                btnAtivo.querySelector('i').classList.remove('text-slate-400');
-                btnAtivo.querySelector('i').classList.add('text-white');
+                const i = btnAtivo.querySelector('i');
+                if(i) { i.classList.remove('text-slate-400', 'text-emerald-400'); i.classList.add('text-white'); }
             }
         }
 
-        // BUSCA E SINCRONIZAÇÃO DE DADOS
+        // ... BUSCA E CONTROLO DE TELAS ...
         function iniciarAutoSync(aba) {
             if(syncTimer) clearInterval(syncTimer);
-            // Sincroniza a cada 15 segundos silenciosamente
-            syncTimer = setInterval(() => {
-                if(currentTab === aba) trocarAba(aba, true);
-            }, 15000);
+            syncTimer = setInterval(() => { if(currentTab === aba) trocarAba(aba, true); }, 15000);
         }
 
         async function trocarAba(aba, isSilent = false) {
             if (!aba) return;
             currentTab = aba;
             
+            const isDashboard = (aba === 'ESTATÍSTICAS');
+            const targetTab = isDashboard ? 'ENTRADA' : aba; // O dashboard alimenta-se da aba Entrada
+
             if (!isSilent) {
                 atualizarMenuAtivo(aba);
-                document.getElementById('title-text').innerText = aba;
-                const btnNovo = document.getElementById('btn-novo-protocolo');
-                if (aba === 'ENTRADA' || aba === 'OBRA') btnNovo.classList.remove('hidden');
-                else btnNovo.classList.add('hidden');
+                document.getElementById('title-text').innerText = isDashboard ? 'Dashboard Estatístico' : aba;
+                document.getElementById('title-icon').className = isDashboard ? 'fas fa-chart-pie text-emerald-500' : 'fas fa-layer-group text-blue-600';
+                
+                // Mostrar/Ocultar ações de cabeçalho
+                document.getElementById('btn-novo-protocolo').classList.toggle('hidden', isDashboard || (aba !== 'ENTRADA' && aba !== 'OBRA'));
+                document.getElementById('export-actions').classList.toggle('hidden', !isDashboard);
 
-                document.getElementById('content-area').innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-64 text-slate-400">
-                        <i class="fas fa-circle-notch fa-spin text-4xl mb-4 text-blue-500"></i>
-                        <p class="font-medium animate-pulse">A extrair dados de ${aba}...</p>
-                    </div>`;
-                document.getElementById('kpi-container').innerHTML = ''; 
-                document.getElementById('total-badge').innerText = '0';
+                // Alternar Views
+                if (isDashboard) {
+                    document.getElementById('table-view-container').classList.add('hidden');
+                    document.getElementById('stats-view-container').classList.remove('hidden');
+                } else {
+                    document.getElementById('table-view-container').classList.remove('hidden');
+                    document.getElementById('stats-view-container').classList.add('hidden');
+                    document.getElementById('content-area').innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-400"><i class="fas fa-circle-notch fa-spin text-4xl mb-4 text-blue-500"></i><p class="font-medium animate-pulse">A extrair dados...</p></div>`;
+                }
             } else {
                 document.getElementById('sync-indicator').classList.remove('hidden');
             }
@@ -410,8 +399,8 @@
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     body: JSON.stringify({ 
-                        action: aba === 'USUÁRIOS' ? 'getUsers' : 'getProtocols', 
-                        tab: aba, 
+                        action: 'getProtocols', 
+                        tab: targetTab, 
                         role: localStorage.getItem('seripm_role'),
                         allowedTabs: localStorage.getItem('seripm_tabs') || "",
                         username: localStorage.getItem('seripm_user')
@@ -422,290 +411,259 @@
 
                 if (result.success) {
                     currentData = result.data; 
-                    gerarKPIs(currentData);
-                    renderizarTabela(currentData, document.getElementById('content-area'));
                     
-                    // Retém o filtro de pesquisa atual, se houver
-                    if(document.getElementById('search-input').value) filtrarTabela();
-                    
+                    if (isDashboard) {
+                        renderizarDashboard(currentData);
+                    } else {
+                        gerarKPIs(currentData);
+                        renderizarTabela(currentData, document.getElementById('content-area'));
+                        if(document.getElementById('search-input').value) filtrarTabela();
+                    }
                 } else if(!isSilent) {
-                    document.getElementById('content-area').innerHTML = `<div class="text-center h-64 text-red-500"><p>Erro: ${result.error}</p></div>`;
+                    if(!isDashboard) document.getElementById('content-area').innerHTML = `<div class="text-center h-64 text-red-500"><p>Erro: ${result.error}</p></div>`;
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
 
-            if(isSilent) {
-                setTimeout(() => document.getElementById('sync-indicator').classList.add('hidden'), 1000);
-            } else {
-                iniciarAutoSync(aba);
-            }
+            if(isSilent) setTimeout(() => document.getElementById('sync-indicator').classList.add('hidden'), 1000);
+            else iniciarAutoSync(aba);
+        }
+
+        // ==========================================
+        // LÓGICA DO DASHBOARD ESTATÍSTICO (NOVO)
+        // ==========================================
+        function renderizarDashboard(dados) {
+            if (!dados || dados.length === 0) return;
+
+            let total = dados.length;
+            let concluidos = 0;
+            let abertos = 0;
+            let statusCount = {};
+            let bairroCount = {};
+            let timelineCount = {};
+
+            dados.forEach(d => {
+                // Contagem de Status
+                let s = (d.STATUS || 'NÃO INFORMADO').toUpperCase().trim();
+                statusCount[s] = (statusCount[s] || 0) + 1;
+                if (s === 'RESOLVIDO' || s === 'CONCLUÍDO') concluidos++;
+                else if (s === 'ABERTO' || s === 'PENDENTE') abertos++;
+
+                // Contagem de Bairros
+                let b = (d.BAIRRO || 'NÃO INFORMADO').toUpperCase().trim();
+                if(b) bairroCount[b] = (bairroCount[b] || 0) + 1;
+
+                // Contagem Temporal (Evolução)
+                let dateRaw = String(d.DATA || '');
+                let dateStr = dateRaw.split(' ')[0]; // Pega a parte DD/MM/YYYY
+                if (dateStr && dateStr.includes('/')) {
+                    timelineCount[dateStr] = (timelineCount[dateStr] || 0) + 1;
+                }
+            });
+
+            // Calcula taxa de resolução
+            let taxa = total > 0 ? ((concluidos / total) * 100).toFixed(1) : 0;
+            document.getElementById('dash-taxa-resolucao').innerText = `${taxa}%`;
+
+            // Renderizar Mini Cards do Dashboard
+            document.getElementById('dash-kpis').innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Entradas</p>
+                    <p class="text-2xl font-bold text-slate-800">${total}</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 border-l-4 border-l-emerald-500">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Resolvidos</p>
+                    <p class="text-2xl font-bold text-slate-800">${concluidos}</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 border-l-4 border-l-amber-500">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Abertos</p>
+                    <p class="text-2xl font-bold text-slate-800">${abertos}</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 border-l-4 border-l-blue-500">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Em Andamento</p>
+                    <p class="text-2xl font-bold text-slate-800">${total - concluidos - abertos}</p>
+                </div>
+            `;
+
+            // Preparar dados para o Gráfico de Status (Pizza)
+            const statusLabels = Object.keys(statusCount);
+            const statusData = Object.values(statusCount);
+            const statusColors = statusLabels.map(l => l==='RESOLVIDO'?'#10b981' : l==='ABERTO'?'#f59e0b' : l==='EM ANDAMENTO'?'#3b82f6' : '#94a3b8');
+
+            if(chartInstStatus) chartInstStatus.destroy();
+            chartInstStatus = new Chart(document.getElementById('chartStatus'), {
+                type: 'doughnut',
+                data: { labels: statusLabels, datasets: [{ data: statusData, backgroundColor: statusColors, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: {family:'Inter'} } } } }
+            });
+
+            // Preparar dados para o Gráfico de Bairros (Barras Horizontais Top 10)
+            const sortedBairros = Object.entries(bairroCount).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            
+            if(chartInstBairros) chartInstBairros.destroy();
+            chartInstBairros = new Chart(document.getElementById('chartBairros'), {
+                type: 'bar',
+                data: { 
+                    labels: sortedBairros.map(i => i[0]), 
+                    datasets: [{ label: 'Chamados', data: sortedBairros.map(i => i[1]), backgroundColor: '#3b82f6', borderRadius: 4 }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { display: false } } } }
+            });
+
+            // Preparar dados para o Gráfico Temporal (Linha Últimos Dias)
+            // Para manter ordem cronológica de datas no formato DD/MM/YYYY, convertemos temporariamente
+            const sortedTimeline = Object.entries(timelineCount).sort((a,b) => {
+                const partsA = a[0].split('/'); const partsB = b[0].split('/');
+                if(partsA.length < 3 || partsB.length < 3) return 0;
+                return new Date(partsA[2], partsA[1]-1, partsA[0]) - new Date(partsB[2], partsB[1]-1, partsB[0]);
+            }).slice(-15); // Pega apenas os últimos 15 dias registados para não poluir
+
+            if(chartInstTimeline) chartInstTimeline.destroy();
+            chartInstTimeline = new Chart(document.getElementById('chartTimeline'), {
+                type: 'line',
+                data: { 
+                    labels: sortedTimeline.map(i => i[0].substring(0,5)), // Mostra só DD/MM 
+                    datasets: [{ label: 'Novos Protocolos', data: sortedTimeline.map(i => i[1]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#10b981' }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, border: {dash: [4, 4]} } } }
+            });
+        }
+
+        // ==========================================
+        // EXPORTAÇÃO CSV (EXCEL) E FUNÇÕES TABELA
+        // ==========================================
+        function exportarCSV() {
+            if(!currentData || currentData.length === 0) return alert("Sem dados para exportar.");
+            
+            const colunas = Object.keys(currentData[0]);
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + colunas.join(";") + "\r\n";
+            
+            currentData.forEach(row => {
+                let rowArray = colunas.map(k => {
+                    let text = String(row[k] || "").replace(/"/g, '""');
+                    return `"${text}"`;
+                });
+                csvContent += rowArray.join(";") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Relatorio_SERIPM_${new Date().toLocaleDateString('pt-PT').replace(/\//g,'-')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function gerarKPIs(dados) {
             const container = document.getElementById('kpi-container');
             if (!dados || dados.length === 0) return;
-
-            let total = dados.length;
-            let abertos = 0;
-            let concluidos = 0;
-
+            let total = dados.length, abertos = 0, concluidos = 0;
             document.getElementById('total-badge').innerText = total;
 
             dados.forEach(row => {
-                const statusStr = JSON.stringify(row).toUpperCase();
-                if (statusStr.includes('"STATUS":"ABERTO"') || statusStr.includes('"STATUS":"PENDENTE"')) abertos++;
-                if (statusStr.includes('"STATUS":"RESOLVIDO"') || statusStr.includes('"STATUS":"CONCLUÍDO"')) concluidos++;
+                const s = JSON.stringify(row).toUpperCase();
+                if (s.includes('"STATUS":"ABERTO"') || s.includes('"STATUS":"PENDENTE"')) abertos++;
+                if (s.includes('"STATUS":"RESOLVIDO"') || s.includes('"STATUS":"CONCLUÍDO"')) concluidos++;
             });
 
             container.innerHTML = `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl"><i class="fas fa-file-alt"></i></div>
-                    <div><p class="text-sm text-slate-500 font-medium">Total Registos</p><p class="text-2xl font-bold text-slate-800">${total}</p></div>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xl"><i class="fas fa-exclamation-circle"></i></div>
-                    <div><p class="text-sm text-slate-500 font-medium">Em Aberto / Pendentes</p><p class="text-2xl font-bold text-slate-800">${abertos}</p></div>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xl"><i class="fas fa-check-circle"></i></div>
-                    <div><p class="text-sm text-slate-500 font-medium">Resolvidos</p><p class="text-2xl font-bold text-slate-800">${concluidos}</p></div>
-                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i class="fas fa-file-alt"></i></div><div><p class="text-xs text-slate-500 font-medium">Total</p><p class="text-xl font-bold">${total}</p></div></div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600"><i class="fas fa-exclamation-circle"></i></div><div><p class="text-xs text-slate-500 font-medium">Pendentes</p><p class="text-xl font-bold">${abertos}</p></div></div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i class="fas fa-check-circle"></i></div><div><p class="text-xs text-slate-500 font-medium">Resolvidos</p><p class="text-xl font-bold">${concluidos}</p></div></div>
             `;
         }
 
         function renderizarTabela(dados, container) {
-            if (!dados || dados.length === 0) { 
-                container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-400"><i class="fas fa-folder-open text-4xl mb-4 text-slate-200"></i><p>Nenhum registo encontrado.</p></div>`; 
-                return; 
-            }
-            
-            let html = `<table class="w-full text-sm text-left whitespace-nowrap" id="data-table">
-                            <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200 sticky top-0 shadow-sm z-10">
-                                <tr>`;
-            
+            if (!dados || dados.length === 0) { container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-400"><p>Nenhum registo encontrado.</p></div>`; return; }
+            let html = `<table class="w-full text-sm text-left whitespace-nowrap" id="data-table"><thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200 sticky top-0 shadow-sm z-10"><tr>`;
             const colunas = Object.keys(dados[0]);
             colunas.forEach(k => html += `<th class="px-6 py-4">${k}</th>`);
             html += `<th class="px-6 py-4 text-right">Ações</th></tr></thead><tbody class="divide-y divide-slate-100 text-slate-700">`;
             
             dados.forEach((row, index) => {
-                html += `<tr class="hover:bg-blue-50/50 transition cursor-pointer group" onclick="abrirDetalhes(${index})">`;
-                
+                html += `<tr class="hover:bg-blue-50/50 transition cursor-pointer" onclick="abrirDetalhes(${index})">`;
                 colunas.forEach(k => {
                     let valor = row[k] || '-';
                     if (k.toUpperCase() === 'STATUS') valor = formatarStatus(valor);
-                    // Destaque para a coluna do protocolo
                     if (k.toUpperCase() === 'PROTOCOLO') valor = `<span class="font-semibold text-blue-700">${valor}</span>`;
-                    
                     html += `<td class="px-6 py-4 max-w-xs truncate" title="${row[k] || ''}">${valor}</td>`;
                 });
-                
-                html += `<td class="px-6 py-4 text-right">
-                            <button class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition" onclick="event.stopPropagation(); abrirDetalhes(${index});">
-                                <i class="fas fa-edit"></i> Gerir
-                            </button>
-                         </td></tr>`;
+                html += `<td class="px-6 py-4 text-right"><button class="text-blue-600 hover:bg-blue-100 p-2 rounded-lg" onclick="event.stopPropagation(); abrirDetalhes(${index});"><i class="fas fa-edit"></i> Gerir</button></td></tr>`;
             });
-            html += `</tbody></table>`;
-            container.innerHTML = html;
+            container.innerHTML = html + `</tbody></table>`;
         }
 
         function formatarStatus(status) {
             const s = String(status).toUpperCase().trim();
-            if (s === 'ABERTO') return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"><span class="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5"></span>${status}</span>`;
-            if (s === 'RESOLVIDO' || s === 'CONCLUÍDO') return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></span>${status}</span>`;
-            if (s === 'ENCAMINHADO' || s === 'EM ANDAMENTO') return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></span>${status}</span>`;
-            return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">${status}</span>`;
+            if (s === 'ABERTO') return `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">${status}</span>`;
+            if (s === 'RESOLVIDO' || s === 'CONCLUÍDO') return `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">${status}</span>`;
+            if (s === 'ENCAMINHADO' || s === 'EM ANDAMENTO') return `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${status}</span>`;
+            return `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">${status}</span>`;
         }
 
         function filtrarTabela() {
-            const input = document.getElementById('search-input');
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById('data-table');
-            if (!table) return;
-            const tr = table.getElementsByTagName('tr');
-
+            const filter = document.getElementById('search-input').value.toUpperCase();
+            const tr = document.getElementById('data-table')?.getElementsByTagName('tr');
+            if(!tr) return;
             for (let i = 1; i < tr.length; i++) {
-                let visible = false;
-                const td = tr[i].getElementsByTagName('td');
-                for (let j = 0; j < td.length - 1; j++) {
-                    if (td[j] && td[j].innerText.toUpperCase().indexOf(filter) > -1) {
-                        visible = true; break;
-                    }
-                }
+                let visible = Array.from(tr[i].getElementsByTagName('td')).some((td, j) => j < tr[i].cells.length - 1 && td.innerText.toUpperCase().indexOf(filter) > -1);
                 tr[i].style.display = visible ? "" : "none";
             }
         }
 
         // ==========================================
-        // LÓGICA DE DETALHES E ATUALIZAÇÃO DE STATUS
+        // MODAIS E SALVAMENTO DE DADOS (Inalterado)
         // ==========================================
         function abrirDetalhes(index) {
             const rowData = currentData[index];
             if (!rowData) return;
-
-            const modal = document.getElementById('modal-detalhes');
-            const box = document.getElementById('modal-box');
-            const body = document.getElementById('modal-body');
-            const footerActions = document.getElementById('modal-footer-actions');
-            
-            let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
-            let protocolId = null;
-            let currentStatus = null;
-            
+            const modal = document.getElementById('modal-detalhes'), box = document.getElementById('modal-box'), body = document.getElementById('modal-body'), footerActions = document.getElementById('modal-footer-actions');
+            let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`, protocolId = null, currentStatus = null;
             Object.keys(rowData).forEach(key => {
                 let val = rowData[key] || '<span class="text-slate-400 italic">Não informado</span>';
-                
                 if (key.toUpperCase() === 'PROTOCOLO') protocolId = rowData[key];
-                if (key.toUpperCase() === 'STATUS') {
-                    currentStatus = rowData[key];
-                    val = formatarStatus(val);
-                }
-                
+                if (key.toUpperCase() === 'STATUS') { currentStatus = rowData[key]; val = formatarStatus(val); }
                 const colSpan = (key.toUpperCase().includes('OBSERVA') || key.toUpperCase().includes('DETALHE')) ? 'md:col-span-2' : '';
-                html += `
-                    <div class="${colSpan} bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <span class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">${key}</span>
-                        <div class="text-slate-800 font-medium whitespace-pre-wrap">${val}</div>
-                    </div>`;
+                html += `<div class="${colSpan} bg-slate-50 p-4 rounded-xl border border-slate-100"><span class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">${key}</span><div class="text-slate-800 font-medium whitespace-pre-wrap">${val}</div></div>`;
             });
-            html += `</div>`;
-            body.innerHTML = html;
+            body.innerHTML = html + `</div>`;
 
-            // Injeta as opções de edição de status (se for um protocolo e não for a aba de utilizadores)
             if (currentTab !== 'USUÁRIOS' && protocolId) {
                 const s = currentStatus ? currentStatus.toUpperCase() : '';
-                footerActions.innerHTML = `
-                    <div class="flex items-center gap-3 w-full md:w-auto p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-                        <label class="text-xs font-bold text-slate-600 uppercase">Mudar Status:</label>
-                        <select id="edit_status" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none">
-                            <option value="ABERTO" ${s==='ABERTO'?'selected':''}>Aberto</option>
-                            <option value="EM ANDAMENTO" ${s==='EM ANDAMENTO'?'selected':''}>Em Andamento</option>
-                            <option value="ENCAMINHADO" ${s==='ENCAMINHADO'?'selected':''}>Encaminhado</option>
-                            <option value="RESOLVIDO" ${s==='RESOLVIDO'?'selected':''}>Resolvido</option>
-                            <option value="CANCELADO" ${s==='CANCELADO'?'selected':''}>Cancelado</option>
-                        </select>
-                        <button onclick="salvarStatus('${protocolId}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition shadow-sm">
-                            Atualizar
-                        </button>
-                    </div>
-                    <div class="flex gap-2 mt-4 md:mt-0">
-                        <button onclick="fecharModal()" class="px-5 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition">Fechar</button>
-                        <button onclick="window.print()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm"><i class="fas fa-print"></i></button>
-                    </div>
-                `;
-            } else {
-                footerActions.innerHTML = `<div class="ml-auto flex gap-2"><button onclick="fecharModal()" class="px-5 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition">Fechar</button></div>`;
-            }
+                footerActions.innerHTML = `<div class="flex items-center gap-3"><select id="edit_status" class="bg-slate-50 border border-slate-300 text-sm rounded-lg p-2"><option value="ABERTO" ${s==='ABERTO'?'selected':''}>Aberto</option><option value="EM ANDAMENTO" ${s==='EM ANDAMENTO'?'selected':''}>Em Andamento</option><option value="RESOLVIDO" ${s==='RESOLVIDO'?'selected':''}>Resolvido</option></select><button onclick="salvarStatus('${protocolId}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Atualizar</button></div><button onclick="fecharModal()" class="px-5 py-2 border rounded-lg">Fechar</button>`;
+            } else footerActions.innerHTML = `<button onclick="fecharModal()" class="px-5 py-2 border rounded-lg ml-auto">Fechar</button>`;
             
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); box.classList.remove('scale-95'); }, 10);
+            modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); box.classList.remove('scale-95'); }, 10);
         }
 
         async function salvarStatus(protocolId) {
-            const newStatus = document.getElementById('edit_status').value;
-            const btn = event.target;
-            const origTxt = btn.innerHTML;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-            btn.disabled = true;
-
+            const newStatus = document.getElementById('edit_status').value, btn = event.target, origTxt = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; btn.disabled = true;
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "updateStatus", tab: currentTab, protocolId: protocolId, newStatus: newStatus })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    fecharModal();
-                    trocarAba(currentTab, false); // Força atualização visual
-                } else { alert("Erro ao atualizar: " + result.error); }
-            } catch (e) { alert("Erro de rede ao salvar status."); }
-            
-            btn.innerHTML = origTxt;
-            btn.disabled = false;
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateStatus", tab: currentTab, protocolId: protocolId, newStatus: newStatus }) });
+                if ((await response.json()).success) { fecharModal(); trocarAba(currentTab, false); } else alert("Erro ao atualizar.");
+            } catch (e) { alert("Erro de rede."); }
+            btn.innerHTML = origTxt; btn.disabled = false;
         }
 
-        function fecharModal() {
-            const modal = document.getElementById('modal-detalhes');
-            const box = document.getElementById('modal-box');
-            modal.classList.add('opacity-0');
-            box.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); }, 300);
-        }
-
-        // ==========================================
-        // LÓGICA DE CRIAÇÃO (NOVO PROTOCOLO)
-        // ==========================================
-        function abrirModalNovo() {
-            document.getElementById('form-novo').reset();
-            const modal = document.getElementById('modal-novo');
-            const box = document.getElementById('modal-novo-box');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); box.classList.remove('scale-95'); }, 10);
-        }
-
-        function fecharModalNovo() {
-            const modal = document.getElementById('modal-novo');
-            const box = document.getElementById('modal-novo-box');
-            modal.classList.add('opacity-0');
-            box.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); }, 300);
-        }
+        function fecharModal() { const m = document.getElementById('modal-detalhes'), b = document.getElementById('modal-box'); m.classList.add('opacity-0'); b.classList.add('scale-95'); setTimeout(() => m.classList.add('hidden'), 300); }
+        function abrirModalNovo() { document.getElementById('form-novo').reset(); const m = document.getElementById('modal-novo'), b = document.getElementById('modal-novo-box'); m.classList.remove('hidden'); setTimeout(() => { m.classList.remove('opacity-0'); b.classList.remove('scale-95'); }, 10); }
+        function fecharModalNovo() { const m = document.getElementById('modal-novo'), b = document.getElementById('modal-novo-box'); m.classList.add('opacity-0'); b.classList.add('scale-95'); setTimeout(() => m.classList.add('hidden'), 300); }
 
         async function salvarNovoProtocolo() {
             const btn = document.getElementById('btn-salvar-novo');
-            
-            // Validações Manuais
-            const inputs = ['novo_solicitante', 'novo_endereco', 'novo_bairro', 'novo_servico'];
-            let valido = true;
-            inputs.forEach(id => {
-                if(!document.getElementById(id).value) {
-                    document.getElementById(id).classList.add('border-red-500');
-                    valido = false;
-                } else {
-                    document.getElementById(id).classList.remove('border-red-500');
-                }
-            });
-            if (!valido) { alert("Preencha os campos obrigatórios marcados a vermelho."); return; }
+            let valido = true; ['novo_solicitante', 'novo_endereco', 'novo_bairro', 'novo_servico'].forEach(id => { const el = document.getElementById(id); if(!el.value) { el.classList.add('border-red-500'); valido = false; } else el.classList.remove('border-red-500'); });
+            if (!valido) { alert("Preencha os campos obrigatórios."); return; }
 
-            const origTxt = btn.innerHTML;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> A Guardar...`;
-            btn.disabled = true;
-
-            const payloadData = {
-                solicitante: document.getElementById('novo_solicitante').value,
-                cpf: document.getElementById('novo_cpf').value,
-                telefone: document.getElementById('novo_telefone').value,
-                endereco: document.getElementById('novo_endereco').value,
-                bairro: document.getElementById('novo_bairro').value,
-                referencia: document.getElementById('novo_referencia').value,
-                servico: document.getElementById('novo_servico').value,
-                detalhes: document.getElementById('novo_detalhes').value,
-                observacoes: document.getElementById('novo_observacoes').value
-            };
-
+            const origTxt = btn.innerHTML; btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> A Guardar...`; btn.disabled = true;
+            const payloadData = { solicitante: document.getElementById('novo_solicitante').value, cpf: document.getElementById('novo_cpf').value, telefone: document.getElementById('novo_telefone').value, endereco: document.getElementById('novo_endereco').value, bairro: document.getElementById('novo_bairro').value, referencia: document.getElementById('novo_referencia').value, servico: document.getElementById('novo_servico').value, detalhes: document.getElementById('novo_detalhes').value, observacoes: document.getElementById('novo_observacoes').value };
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "createProtocol", tab: currentTab, username: localStorage.getItem('seripm_user'), data: payloadData })
-                });
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "createProtocol", tab: currentTab, username: localStorage.getItem('seripm_user'), data: payloadData }) });
                 const result = await response.json();
-                
-                if (result.success) {
-                    fecharModalNovo();
-                    alert(`Protocolo gerado com sucesso: ${result.protocolo}`);
-                    trocarAba(currentTab, false);
-                } else {
-                    alert("Erro ao criar protocolo: " + result.error);
-                }
-            } catch (e) {
-                alert("Erro de ligação. O protocolo pode não ter sido guardado.");
-            }
-            
-            btn.innerHTML = origTxt;
-            btn.disabled = false;
+                if (result.success) { fecharModalNovo(); alert(`Protocolo: ${result.protocolo}`); trocarAba(currentTab, false); } else alert("Erro: " + result.error);
+            } catch (e) { alert("Erro de ligação."); }
+            btn.innerHTML = origTxt; btn.disabled = false;
         }
-
     </script>
 </body>
 </html>
