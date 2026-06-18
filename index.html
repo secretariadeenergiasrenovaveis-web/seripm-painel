@@ -69,8 +69,10 @@
 
         async function fazerLogin() {
             const u = document.getElementById('user').value;
+            // Para testes, forçamos um login simples
             localStorage.setItem('seripm_user', u);
             localStorage.setItem('seripm_role', "SUPERVISOR"); 
+            localStorage.setItem('seripm_tabs', "ENTRADA,ADMINISTRATIVO,SUPERVISOR,COM FUNCIONÁRIO,IMPLANTAÇÃO,OBRA,GARANTIA,USUÁRIOS");
             location.reload();
         }
 
@@ -85,7 +87,9 @@
                     body: JSON.stringify({ 
                         action: aba === 'USUÁRIOS' ? 'getUsers' : 'getProtocols', 
                         tab: aba, 
-                        role: localStorage.getItem('seripm_role')
+                        role: localStorage.getItem('seripm_role') || 'ATENDENTE',
+                        allowedTabs: localStorage.getItem('seripm_tabs') || '',
+                        username: localStorage.getItem('seripm_user')
                     })
                 });
                 
@@ -97,6 +101,7 @@
                     content.innerHTML = `<p class="text-red-500">Erro: ${result.error || "Sem dados disponíveis."}</p>`;
                 }
             } catch (e) {
+                console.error(e);
                 content.innerHTML = `<p class="text-red-500">Erro de conexão. Verifique o servidor.</p>`;
             }
         }
