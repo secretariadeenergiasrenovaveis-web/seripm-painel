@@ -1,436 +1,139 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo SERIPM</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <style>
-        /* Esconde a barra de rolagem mas permite o scroll */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Estilização para linhas expandidas na tabela */
-        tr.expanded-row { background-color: #f8fafc; }
-    </style>
-</head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+/**
+ * SISTEMA INTEGRADO SERIPM 2026 - BACK-END API + AUTOMATION
+ * Versão de Segurança: Controle de Acesso por Perfil e Permissão de Abas
+ */
 
-    <script>
-        // Variáveis globais de sessão e interface
-        let currentUser = "";
-        let currentRole = "";
-        let userAllowedTabs = [];
-        const ALL_TABS = ["ENTRADA", "ADMINISTRATIVO", "SUPERVISOR", "USUÁRIOS"];
+function onEdit(e) {
+  if (!e) return;
+  const ss = e.source;
+  const range = e.range;
+  const sheet = range.getSheet();
+  const sheetName = sheet.getName();
+  const row = range.getRow();
+  const col = range.getColumn();
+  let valor = range.getValue();
 
-        // Verifica a sessão ativa ao carregar a página
-        window.onload = () => {
-            const savedUser = localStorage.getItem('seripm_user');
-            if (savedUser) {
-                currentUser = savedUser;
-                currentRole = localStorage.getItem('seripm_role');
-                userAllowedTabs = localStorage.getItem('seripm_tabs').split(',');
-                carregarDashboard();
-            }
-        };
+  if (row <= 1 || !valor || ["SUPERVISOR", "USUARIOS", "USUÁRIOS"].includes(sheetName)) return;
 
-        // Transição de tela para o painel principal e configuração inicial
-        function carregarDashboard() {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('user-name').textContent = currentUser;
-            document.getElementById('user-role').textContent = "Perfil: " + currentRole;
-            buildTabMenu();
-        }
+  // Formatação Automática
+  if (col === 7) {
+    let cpf = valor.toString().replace(/\D/g, "").padStart(11, '0').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    range.setNumberFormat("@").setValue(cpf);
+  } else if (col === 8) {
+    let tel = valor.toString().replace(/\D/g, "");
+    range.setNumberFormat("@");
+    if (tel.length === 11) range.setValue(tel.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3"));
+    else if (tel.length === 10) range.setValue(tel.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3"));
+  } else if (typeof valor === 'string') {
+    range.setValue(valor.toUpperCase());
+  }
 
-        // Encerra a sessão e recarrega a página
-        function logout() {
-            localStorage.clear();
-            location.reload();
-        }
+  // Sincronização e Gatilhos
+  if (sheetName === "ENTRADA") {
+    if (col === 6 && sheet.getRange(row, 2).getValue() === "") {
+      const agora = new Date();
+      sheet.getRange(row, 1).setValue(Utilities.formatDate(agora, "GMT-3", "dd/MM/yyyy HH:mm:ss"));
+      sheet.getRange(row, 2).setValue(Utilities.formatDate(agora, "GMT-3", "yyyyMMdd") + "-" + (row - 1).toString().padStart(3, '0'));
+      if (sheet.getRange(row, 12).getValue() === "") sheet.getRange(row, 12).setValue("ABERTO");
+    }
+  }
+}
 
-        // Endpoint da API no Google Apps Script
-        const API_URL = "https://script.google.com/macros/s/AKfycbypRWWMMAI8QC_jWHHAw-B1xklBIY9deSazulRC_rkZM3u65RiHMpQl6yG0xAXm8hQx/exec"; 
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    switch(payload.action) {
+      case "login": return processLogin(payload.username, payload.password);
+      case "getProtocols": return getProtocols(payload);
+      case "createProtocol": return createProtocol(payload);
+      case "updateStatus": return updateStatus(payload);
+      case "getUsers": return getUsers(payload);
+      case "saveUser": return saveUser(payload);
+      default: return responseJson({ success: false, error: "Ação inválida." });
+    }
+  } catch (err) { return responseJson({ success: false, error: err.toString() }); }
+}
 
-        // Função central de comunicação com a API (Correção de CORS aplicada aqui)
-        async function fetchAPI(payload) {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        // O uso de text/plain evita o bloqueio preflight (CORS) no Apps Script
-                        'Content-Type': 'text/plain;charset=utf-8' 
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                console.error("Erro de comunicação com a API:", error);
-                return { success: false, error: "Falha na comunicação com o servidor." };
-            }
-        }
+function responseJson(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}
 
-        // Autenticação de usuário e controle do botão de login
-        async function handleLogin(event) {
-            event.preventDefault(); 
-            
-            const user = document.getElementById('login-user').value;
-            const pass = document.getElementById('login-pass').value;
-            const btn = document.getElementById('btn-login');
-            
-            const txtOriginal = btn.textContent;
-            btn.textContent = "Autenticando...";
-            btn.disabled = true;
+function processLogin(user, pass) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("USUARIOS") || SpreadsheetApp.getActiveSpreadsheet().getSheetByName("USUÁRIOS");
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString().trim().toUpperCase() === user.toString().trim().toUpperCase() && data[i][1].toString() === pass.toString()) {
+      if ((data[i][3] || "").toString().toUpperCase() === "INATIVO") return responseJson({ success: false, error: "Usuário inativo." });
+      return responseJson({ success: true, username: data[i][0], role: data[i][2].toString().toUpperCase(), allowedTabs: (data[i][4] || "").toString() });
+    }
+  }
+  return responseJson({ success: false, error: "Credenciais inválidas." });
+}
 
-            const res = await fetchAPI({ action: "login", username: user, password: pass });
-            
-            if (res && res.success) {
-                localStorage.setItem('seripm_user', res.userData ? res.userData.username : user);
-                localStorage.setItem('seripm_role', res.userData ? res.userData.role : 'ATENDENTE');
-                localStorage.setItem('seripm_tabs', res.userData ? res.userData.tabs : 'ENTRADA');
-                
-                currentUser = localStorage.getItem('seripm_user');
-                currentRole = localStorage.getItem('seripm_role');
-                userAllowedTabs = localStorage.getItem('seripm_tabs').split(',');
-                
-                carregarDashboard();
-            } else {
-                alert(res?.error || "Acesso negado. Credenciais inválidas.");
-            }
-            
-            btn.textContent = txtOriginal;
-            btn.disabled = false;
-        }
+function getProtocols(p) {
+  // Validação de segurança para não-supervisores
+  if (p.role !== "SUPERVISOR") {
+    if (p.tab === "OBRA") return responseJson({ success: false, error: "Acesso negado." });
+    const allowed = p.allowedTabs.split(',');
+    if (!allowed.includes(p.tab)) return responseJson({ success: false, error: "Acesso negado à aba." });
+  }
 
-        // Constrói o menu de abas baseado nas permissões do usuário logado
-        function buildTabMenu() {
-            const menu = document.getElementById('tab-menu');
-            menu.innerHTML = "";
-            userAllowedTabs.forEach(tab => {
-                if (ALL_TABS.includes(tab)) {
-                    const btn = document.createElement('button');
-                    btn.className = "px-4 py-2 text-xs font-black uppercase rounded-t-lg transition whitespace-nowrap bg-slate-200 text-slate-500 hover:bg-slate-300";
-                    btn.textContent = tab;
-                    btn.onclick = () => loadTab(tab);
-                    menu.appendChild(btn);
-                }
-            });
-            if (userAllowedTabs.length > 0) loadTab(userAllowedTabs[0]);
-        }
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(p.tab);
+  if (!sheet) return responseJson({ success: false, error: "Aba não encontrada." });
+  
+  const data = sheet.getDataRange().getValues();
+  let results = [];
+  for (let i = 1; i < data.length; i++) {
+    if (p.role === "ATENDENTE" && data[i][2].toString().toUpperCase() !== p.username.toString().toUpperCase()) continue;
+    results.push({ dataHora: data[i][0], protocolo: data[i][1], atendente: data[i][2], solicitante: data[i][5], status: data[i][11], bairro: data[i][8] });
+  }
+  return responseJson({ success: true, data: results.reverse() });
+}
 
-        // Alterna entre as abas e carrega os dados correspondentes
-        function loadTab(tabName) {
-            if (tabName === "USUÁRIOS") {
-                document.getElementById('main-data-card').classList.add('hidden');
-                document.getElementById('control-bar').classList.add('hidden');
-                document.getElementById('stats-container').classList.add('hidden');
-                document.getElementById('user-management-card').classList.remove('hidden');
-                loadUsers();
-            } else {
-                document.getElementById('user-management-card').classList.add('hidden');
-                document.getElementById('main-data-card').classList.remove('hidden');
-                document.getElementById('control-bar').classList.remove('hidden');
-                document.getElementById('stats-container').classList.remove('hidden');
-                loadData(tabName);
-            }
-        }
+function createProtocol(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(p.tab);
+  if (!sheet) return responseJson({ success: false, error: "Aba inválida" });
+  
+  const agora = new Date();
+  const prefixo = (p.tab === "OBRA") ? "OBRA-" : "";
+  const proto = prefixo + Utilities.formatDate(agora, "GMT-3", "yyyyMMdd") + "-" + (sheet.getLastRow()).toString().padStart(3, '0');
+  
+  sheet.appendRow([Utilities.formatDate(agora, "GMT-3", "dd/MM/yyyy HH:mm:ss"), proto, p.username.toUpperCase(), p.data.endereco, p.data.referencia, p.data.solicitante, p.data.cpf, p.data.telefone, p.data.bairro, p.data.servico, p.data.detalhes, "ABERTO", p.data.observacoes]);
+  return responseJson({ success: true, protocolo: proto });
+}
 
-        // Exibe modais genéricos
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
+function updateStatus(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(p.tab);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === p.protocolId) {
+      sheet.getRange(i + 1, 12).setValue(p.newStatus.toUpperCase());
+      return responseJson({ success: true });
+    }
+  }
+  return responseJson({ success: false, error: "Protocolo não achado" });
+}
 
-        // Oculta modais genéricos
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
+function getUserSheet() { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("USUARIOS") || SpreadsheetApp.getActiveSpreadsheet().getSheetByName("USUÁRIOS"); }
 
-        // Filtra a tabela principal baseada no campo de busca
-        function filterTable() {
-            const input = document.getElementById("search-input").value.toUpperCase();
-            const trs = document.getElementById("table-body").getElementsByTagName("tr");
-            for (let i = 0; i < trs.length; i++) {
-                const text = trs[i].innerText.toUpperCase();
-                trs[i].style.display = text.indexOf(input) > -1 ? "" : "none";
-            }
-        }
+function getUsers(p) {
+  if (p.role !== "SUPERVISOR") return responseJson({ success: false, error: "Acesso negado" });
+  const data = getUserSheet().getDataRange().getValues();
+  return responseJson({ success: true, data: data.slice(1).map(r => ({ username: r[0], role: r[2], status: r[3], tabs: r[4] })) });
+}
 
-        // Submete um novo chamado para a API
-        async function submitProtocolo(event) {
-            event.preventDefault();
-            const payload = {
-                action: "novoChamado",
-                username: currentUser,
-                data: {
-                    solicitante: document.getElementById('np-solicitante').value,
-                    cpf: document.getElementById('np-cpf').value,
-                    endereco: document.getElementById('np-endereco').value,
-                    telefone: document.getElementById('np-telefone').value,
-                    bairro: document.getElementById('np-bairro').value,
-                    referencia: document.getElementById('np-ref').value,
-                    servico: document.getElementById('np-solicitacao').value,
-                    detalhes: document.getElementById('np-detalhes').value,
-                    observacoes: document.getElementById('np-obs').value
-                }
-            };
-            const res = await fetchAPI(payload);
-            if (res.success) {
-                closeModal('modal-novo');
-                alert("Chamado registrado com sucesso.");
-                loadTab(userAllowedTabs[0]); // Recarrega a aba inicial
-            } else {
-                alert("Erro ao registrar: " + res.error);
-            }
-        }
-
-        // (Placeholder) Carrega e renderiza os dados da aba selecionada
-        async function loadData(tabName) {
-            // Requisita os dados da aba
-            const res = await fetchAPI({ action: "getData", tab: tabName, username: currentUser });
-            if(res.success) {
-                // Atualizar tabela #table-body e #stats-container
-            }
-        }
-
-        // (Placeholder) Gera relatório a partir da tabela atual
-        function gerarRelatorioJanela() {
-            window.open('Relatório.html', '_blank');
-        }
-
-        // (Placeholder) Carrega a lista de usuários no painel de gerência
-        async function loadUsers() {
-            const res = await fetchAPI({ action: "getUsers", username: currentUser });
-            if(res.success) {
-               // Renderizar trs em #user-table-body
-            }
-        }
-
-        // Constrói os checkboxes dinâmicos para controle de acesso do usuário
-        function buildCheckboxes(checkedStr) {
-            const c = document.getElementById('permissions-container'); 
-            if(c) {
-                c.innerHTML = "";
-                const arr = checkedStr ? checkedStr.split(',') : [];
-                ALL_TABS.forEach(t => { 
-                    if(t !== "USUÁRIOS") {
-                        c.innerHTML += `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${t}" class="chk-tab" ${arr.includes(t)?'checked':''}> ${t}</label>`; 
-                    }
-                });
-            }
-        }
-
-        // Abre modal para criar usuário vazio
-        function openUserModal() { 
-            document.getElementById('mu-username').value = ""; 
-            document.getElementById('mu-username').disabled = false; 
-            buildCheckboxes(""); 
-            openModal('modal-usuario'); 
-        }
-
-        // Preenche e abre modal para edição de usuário
-        function editUser(user, pass, role, tabs) { 
-            document.getElementById('mu-username').value = user; 
-            document.getElementById('mu-username').disabled = true; 
-            document.getElementById('mu-password').value = pass; 
-            document.getElementById('mu-role').value = role; 
-            buildCheckboxes(tabs); 
-            openModal('modal-usuario'); 
-        }
-
-        // Submete os dados de criação ou edição de usuário
-        async function submitUser(e) {
-            e.preventDefault();
-            const chk = Array.from(document.querySelectorAll('.chk-tab:checked')).map(el => el.value).join(',');
-            await fetchAPI({ 
-                action: "saveUser", 
-                username: currentUser, 
-                role: currentRole, 
-                userData: { 
-                    username: document.getElementById('mu-username').value, 
-                    password: document.getElementById('mu-password').value, 
-                    role: document.getElementById('mu-role').value, 
-                    tabs: chk 
-                } 
-            });
-            closeModal('modal-usuario'); 
-            loadUsers();
-        }
-    </script>
-
-    <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-120%] opacity-0 bg-white shadow-2xl rounded-2xl p-4 flex items-center gap-3 border-l-4">
-        <div id="toast-icon"></div><p id="toast-msg" class="text-xs font-black uppercase tracking-wider"></p>
-    </div>
-
-    <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 to-slate-800">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100">
-            <div class="text-center mb-6">
-                <div class="inline-flex bg-blue-50 text-blue-600 p-4 rounded-full mb-3 shadow-inner"><i class="fa-solid fa-folder-closed text-3xl"></i></div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">SERIPM MARICÁ</h1>
-                <p class="text-[10px] text-slate-400 font-black tracking-widest uppercase mt-1">Plataforma Operacional</p>
-            </div>
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <input type="text" id="login-user" placeholder="Matrícula / Operador" required class="w-full border border-slate-200 rounded-xl p-3 text-xs font-bold uppercase tracking-wide bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="password" id="login-pass" placeholder="Código de Segurança" required class="w-full border border-slate-200 rounded-xl p-3 text-xs font-bold bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="submit" id="btn-login" class="w-full bg-blue-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg hover:bg-blue-700 transition">Autenticar Entrada</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="dashboard" class="hidden min-h-screen flex flex-col">
-        <header class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center print:hidden">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-headset text-blue-600 text-lg"></i>
-                <h1 class="text-base font-black tracking-tight text-slate-900">SERIPM <span class="text-xs font-normal text-slate-400">v4.0</span></h1>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right">
-                    <p id="user-name" class="text-xs font-black text-slate-800 uppercase"></p>
-                    <p id="user-role" class="text-[9px] text-blue-600 font-black tracking-wider uppercase"></p>
-                </div>
-                <button onclick="logout()" class="text-slate-300 hover:text-red-500 transition">
-                    <i class="fa-solid fa-power-off text-base"></i>
-                </button>
-            </div>
-        </header>
-
-        <main class="flex-1 p-4 lg:p-6 max-w-[1700px] mx-auto w-full">
-            <div class="flex gap-1 overflow-x-auto no-scrollbar mb-4 border-b border-slate-200 print:hidden" id="tab-menu"></div>
-
-            <div id="stats-container" class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 print:hidden">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200"><p class="text-[9px] uppercase font-black text-slate-400">Total na Aba</p><p id="stat-total" class="text-2xl font-black text-blue-600 mt-1">0</p></div>
-                <div class="bg-amber-50 p-4 rounded-2xl shadow-sm border border-amber-200"><p class="text-[9px] uppercase font-black text-amber-600">Abertos</p><p id="stat-abertos" class="text-2xl font-black text-amber-700 mt-1">0</p></div>
-                <div class="bg-rose-50 p-4 rounded-2xl shadow-sm border border-rose-200"><p class="text-[9px] uppercase font-black text-rose-600">Em Garantia</p><p id="stat-garantia" class="text-2xl font-black text-rose-700 mt-1">0</p></div>
-                <div class="bg-emerald-50 p-4 rounded-2xl shadow-sm border border-emerald-200"><p class="text-[9px] uppercase font-black text-emerald-600">Resolvidos</p><p id="stat-resolvidos" class="text-2xl font-black text-emerald-700 mt-1">0</p></div>
-                <div class="bg-slate-50 p-4 rounded-2xl shadow-sm border border-slate-200"><p class="text-[9px] uppercase font-black text-slate-500">Outros</p><p id="stat-outros" class="text-2xl font-black text-slate-700 mt-1">0</p></div>
-            </div>
-
-            <div id="control-bar" class="flex flex-col md:flex-row justify-between gap-3 mb-4 print:hidden">
-                <div class="flex gap-2 w-full md:w-1/2">
-                    <div class="relative w-full">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                        <input type="text" id="search-input" onkeyup="filterTable()" placeholder="Filtrar nesta aba..." class="w-full border border-slate-200 bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-blue-600">
-                    </div>
-                </div>
-                <div class="flex gap-2 justify-end items-center">
-                    <button onclick="openModal('modal-exportacao')" class="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 shadow-sm"><i class="fa-solid fa-file-export mr-1.5"></i>Exportar Excel/PDF</button>
-                    <button onclick="gerarRelatorioJanela()" class="bg-teal-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-teal-700 shadow-sm"><i class="fa-solid fa-chart-pie mr-1.5"></i>Relatório Geral</button>
-                    <button onclick="window.print()" class="bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-700 shadow-sm"><i class="fa-solid fa-print mr-1.5"></i>Imprimir Lista</button>
-                    <button onclick="openModal('modal-novo')" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md"><i class="fa-solid fa-plus mr-1.5"></i>Novo Chamado</button>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="main-data-card">
-                <div class="overflow-x-auto" id="tabela-impressao-container">
-                    <table class="w-full text-left text-xs border-collapse" id="protocol-table">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                                <th class="p-3.5 w-12 text-center print:hidden">Ver</th>
-                                <th class="p-3.5">Data / Hora</th>
-                                <th class="p-3.5">Protocolo</th>
-                                <th class="p-3.5">Atendente</th>
-                                <th class="p-3.5">Solicitante</th>
-                                <th class="p-3.5">Bairro</th>
-                                <th class="p-3.5 text-center">Status / Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="user-management-card" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <div><h2 class="text-base font-black text-slate-900 uppercase">Controle de Operadores</h2></div>
-                    <button onclick="openUserModal()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-user-plus mr-1.5"></i>Cadastrar</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-500 uppercase">
-                                <th class="p-3">Operador</th>
-                                <th class="p-3">Senha</th>
-                                <th class="p-3">Nível</th>
-                                <th class="p-3 text-center">Abas Liberadas</th>
-                                <th class="p-3 text-center">Estado</th>
-                                <th class="p-3 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="user-table-body" class="divide-y divide-slate-100 font-bold text-slate-700"></tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <div id="modal-novo" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
-        <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden">
-            <div class="p-4 border-b flex justify-between bg-slate-50 items-center">
-                <h3 class="font-black text-slate-800 uppercase text-xs">Novo Chamado</h3>
-                <button onclick="closeModal('modal-novo')"><i class="fa-solid fa-xmark text-sm"></i></button>
-            </div>
-            <form onsubmit="submitProtocolo(event)" class="p-6 space-y-4">
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="col-span-2"><label class="block text-[9px] font-black text-slate-500 uppercase">Solicitante</label><input type="text" id="np-solicitante" required class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50"></div>
-                    <div><label class="block text-[9px] font-black text-slate-500 uppercase">CPF</label><input type="text" id="np-cpf" class="w-full border rounded-xl p-2.5 text-xs font-bold bg-slate-50"></div>
-                    <div class="col-span-2"><label class="block text-[9px] font-black text-slate-500 uppercase">Endereço</label><input type="text" id="np-endereco" required class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50"></div>
-                    <div><label class="block text-[9px] font-black text-slate-500 uppercase">Telefone</label><input type="text" id="np-telefone" required class="w-full border rounded-xl p-2.5 text-xs font-bold bg-slate-50"></div>
-                    <div><label class="block text-[9px] font-black text-slate-500 uppercase">Bairro</label><input type="text" id="np-bairro" required class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50"></div>
-                    <div class="col-span-2"><label class="block text-[9px] font-black text-slate-500 uppercase">Referência</label><input type="text" id="np-ref" class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50"></div>
-                    <div><label class="block text-[9px] font-black text-slate-500 uppercase">Serviço</label>
-                        <select id="np-solicitacao" required class="w-full border bg-white rounded-xl p-2.5 text-xs font-bold uppercase">
-                            <option value="" disabled selected>Selecione...</option>
-                            <option value="TROCA DE LÂMPADA">Troca de Lâmpada</option>
-                            <option value="CURTO CIRCUITO">Curto Circuito</option>
-                            <option value="POSTE DANIFICADO">Poste Danificado</option>
-                            <option value="OUTROS ATENDIMENTOS">Outros Atendimentos</option>
-                        </select>
-                    </div>
-                    <div class="col-span-2"><label class="block text-[9px] font-black text-slate-500 uppercase">Detalhes Adicionais</label><input type="text" id="np-detalhes" class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50"></div>
-                    <div class="col-span-3"><label class="block text-[9px] font-black text-slate-500 uppercase">Observações</label><input type="text" id="np-obs" class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50"></div>
-                </div>
-                <div class="pt-3 flex justify-end gap-2 border-t mt-4">
-                    <button type="button" onclick="closeModal('modal-novo')" class="px-4 py-2 border rounded-xl text-xs font-bold">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white text-xs font-black uppercase rounded-xl">Registrar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="modal-usuario" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
-        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl">
-            <div class="p-4 border-b bg-slate-50 flex justify-between items-center rounded-t-3xl">
-                <h3 class="font-black text-slate-800 uppercase text-xs" id="user-modal-title">Operador</h3>
-                <button onclick="closeModal('modal-usuario')"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form onsubmit="submitUser(event)" class="p-5 space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-[9px] font-black text-slate-500 uppercase mb-1">Login</label><input type="text" id="mu-username" required class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50"></div>
-                    <div><label class="block text-[9px] font-black text-slate-500 uppercase mb-1">Senha</label><input type="text" id="mu-password" required class="w-full border rounded-xl p-2.5 text-xs font-bold bg-slate-50"></div>
-                </div>
-                <div>
-                    <label class="block text-[9px] font-black text-slate-500 uppercase mb-1">Nível de Acesso</label>
-                    <select id="mu-role" class="w-full border rounded-xl p-2.5 text-xs font-bold uppercase bg-slate-50">
-                        <option value="ATENDENTE">Atendente</option>
-                        <option value="SUPERVISOR">Supervisor</option>
-                        <option value="ADMINISTRADOR">Administrador</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[9px] font-black text-slate-500 uppercase mb-2">Permissões de Aba</label>
-                    <div id="permissions-container" class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-                        </div>
-                </div>
-                <div class="pt-2 flex justify-end gap-2">
-                    <button type="button" onclick="closeModal('modal-usuario')" class="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase shadow-md hover:bg-blue-700">Salvar Dados</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-</body>
-</html>
+function saveUser(p) {
+  if (p.role !== "SUPERVISOR") return responseJson({ success: false, error: "Acesso negado" });
+  const sheet = getUserSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toUpperCase() === p.userData.username.toUpperCase()) {
+      sheet.getRange(i + 1, 2).setValue(p.userData.password);
+      sheet.getRange(i + 1, 3).setValue(p.userData.role);
+      sheet.getRange(i + 1, 5).setValue(p.userData.tabs);
+      return responseJson({ success: true });
+    }
+  }
+  sheet.appendRow([p.userData.username, p.userData.password, p.userData.role, "ATIVO", p.userData.tabs]);
+  return responseJson({ success: true });
+}
