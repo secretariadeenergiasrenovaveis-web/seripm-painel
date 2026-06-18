@@ -6,17 +6,13 @@
     <title>Painel Administrativo SERIPM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        tr.expanded-row { background-color: #f8fafc; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
-    <!-- Login -->
     <div id="login-screen" class="flex items-center justify-center min-h-screen">
         <div class="bg-white p-8 rounded-xl shadow-xl w-96 border border-slate-200">
             <h2 class="text-2xl font-bold text-center mb-6 text-blue-800">SERIPM 2026</h2>
@@ -26,19 +22,17 @@
         </div>
     </div>
 
-    <!-- Dashboard -->
     <div id="dashboard" class="hidden flex h-screen">
         <aside class="w-64 bg-slate-900 text-white p-6 flex flex-col h-full">
             <h1 class="text-xl font-bold mb-8 border-b border-slate-700 pb-4">SERIPM 2026</h1>
             <nav class="space-y-2 flex-1 overflow-y-auto no-scrollbar">
-                <button onclick="trocarAba('ENTRADA')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-plus mr-2"></i> Entrada</button>
-                <button onclick="trocarAba('ADMINISTRATIVO')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-cogs mr-2"></i> Administrativo</button>
-                <button onclick="trocarAba('SUPERVISOR')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-user-tie mr-2"></i> Supervisor</button>
-                <button onclick="trocarAba('COM FUNCIONÁRIO')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-users mr-2"></i> Com Funcionário</button>
-                <button onclick="trocarAba('IMPLANTAÇÃO')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-bolt mr-2"></i> Implantação</button>
-                <button onclick="trocarAba('OBRA')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-hammer mr-2"></i> Obra</button>
-                <button onclick="trocarAba('GARANTIA')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-shield-alt mr-2"></i> Garantia</button>
-                <button onclick="trocarAba('USUÁRIOS')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition"><i class="fas fa-user-cog mr-2"></i> Usuários</button>
+                <button onclick="trocarAba('ENTRADA')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition">Entrada</button>
+                <button onclick="trocarAba('ADMINISTRATIVO')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition">Administrativo</button>
+                <button onclick="trocarAba('SUPERVISOR')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition">Supervisor</button>
+                <button onclick="trocarAba('COM FUNCIONÁRIO')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition">Com Funcionário</button>
+                <button onclick="trocarAba('IMPLANTAÇÃO')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition">Implantação</button>
+                <button onclick="trocarAba('OBRA')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition">Obra</button>
+                <button onclick="trocarAba('GARANTIA')" class="block w-full text-left p-2 hover:bg-blue-800 rounded transition">Garantia</button>
             </nav>
             <button onclick="logout()" class="text-red-400 hover:text-red-300 mt-auto pt-4 border-t border-slate-700"><i class="fas fa-sign-out-alt mr-2"></i> Sair</button>
         </aside>
@@ -48,51 +42,78 @@
                 <h2 id="tab-title" class="text-2xl font-bold text-slate-800">Selecione uma aba</h2>
                 <span id="display-user" class="bg-white px-4 py-2 rounded-lg shadow-sm font-medium"></span>
             </header>
-            <div id="content-area" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[400px]">
-                <p>O sistema está pronto. Escolha um setor na barra lateral para carregar os protocolos.</p>
+            <div id="content-area" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[400px] overflow-x-auto">
+                <p>Selecione um setor no menu lateral para visualizar os dados.</p>
             </div>
         </main>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxNb43bJzS-d5Fz7mtHft3U40Ts86y6POoCPVtMXqKwShOQUXbxBMowjQrFj6jy8BrS/exec";
-        let currentUser = "";
-        let currentRole = "";
 
         window.onload = () => {
             const savedUser = localStorage.getItem('seripm_user');
             if (savedUser) {
-                currentUser = savedUser;
-                currentRole = localStorage.getItem('seripm_role');
-                mostrarDashboard(currentUser);
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('display-user').innerText = "Usuário: " + savedUser;
             }
         };
 
-        function mostrarDashboard(user) {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('display-user').innerText = "Usuário: " + user;
-        }
-
         async function fazerLogin() {
             const u = document.getElementById('user').value;
-            const p = document.getElementById('pass').value;
-            // Integração real com seu endpoint de login ficaria aqui
             localStorage.setItem('seripm_user', u);
             localStorage.setItem('seripm_role', "SUPERVISOR"); 
-            mostrarDashboard(u);
-        }
-
-        function trocarAba(aba) {
-            document.getElementById('tab-title').innerText = aba;
-            document.getElementById('content-area').innerHTML = `<div class="p-4 border-b">Carregando ${aba}...</div>`;
-            // Aqui entra a lógica de buscar dados da aba específica
-        }
-
-        function logout() {
-            localStorage.clear();
             location.reload();
         }
+
+        async function trocarAba(aba) {
+            document.getElementById('tab-title').innerText = aba;
+            const content = document.getElementById('content-area');
+            content.innerHTML = `<p class="text-slate-500">A processar dados de ${aba}...</p>`;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Tenta contornar bloqueios iniciais
+                    body: JSON.stringify({ 
+                        action: "getProtocols", 
+                        tab: aba, 
+                        role: "SUPERVISOR"
+                    })
+                });
+                
+                // Nota: como usamos no-cors, não conseguimos ler o JSON diretamente.
+                // Recomendo alterar para o modo padrão se o seu GAS permitir CORS.
+                const result = await (await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: "getProtocols", tab: aba})})).json();
+
+                if (result.success) {
+                    renderizarTabela(result.data, content);
+                } else {
+                    content.innerHTML = `<p class="text-red-500">Erro: ${result.error || "Dados indisponíveis."}</p>`;
+                }
+            } catch (e) {
+                console.error("Erro na API:", e);
+                content.innerHTML = `<p class="text-red-500">Erro de conexão. Verifique se a API está implantada.</p>`;
+            }
+        }
+
+        function renderizarTabela(dados, container) {
+            if (!dados || dados.length === 0) { container.innerHTML = "<p>Nenhum registo encontrado.</p>"; return; }
+            
+            let html = `<table class="w-full text-xs text-left border-collapse"><thead class="bg-slate-800 text-white"><tr>`;
+            Object.keys(dados[0]).forEach(k => html += `<th class="px-2 py-2 border">${k}</th>`);
+            html += `</tr></thead><tbody>`;
+            dados.forEach(row => {
+                html += `<tr class="border-b hover:bg-slate-50">`;
+                Object.values(row).forEach(v => html += `<td class="px-2 py-2 border">${v || '-'}</td>`);
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
