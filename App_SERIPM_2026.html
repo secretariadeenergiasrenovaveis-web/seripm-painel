@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SERIPM 2026 | Gestão de Energia e Iluminação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .sidebar-item { @apply flex items-center p-3 rounded-lg cursor-pointer hover:bg-blue-700 transition; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+    <!-- Login Container -->
+    <div id="login-screen" class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-xl shadow-xl w-96">
+            <h2 class="text-2xl font-bold text-center mb-6 text-blue-800">SERIPM 2026</h2>
+            <input type="text" id="user" placeholder="Usuário" class="w-full p-3 mb-4 border rounded">
+            <input type="password" id="pass" placeholder="Senha" class="w-full p-3 mb-6 border rounded">
+            <button onclick="login()" class="w-full bg-blue-800 text-white p-3 rounded font-bold hover:bg-blue-900">ENTRAR</button>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden flex h-screen">
+        <aside class="w-64 bg-slate-900 text-white p-4 flex flex-col">
+            <h1 class="text-xl font-bold mb-8">SERIPM | Painel</h1>
+            <nav class="flex-1 space-y-2">
+                <div class="sidebar-item" onclick="switchTab('dashboard-view')"><i class="fas fa-home mr-3"></i> Dashboard</div>
+                <div class="sidebar-item" onclick="switchTab('entrada-view')"><i class="fas fa-plus mr-3"></i> Entrada</div>
+                <div class="sidebar-item" onclick="switchTab('admin-view')"><i class="fas fa-cogs mr-3"></i> Administrativo</div>
+                <div class="sidebar-item" onclick="switchTab('relatorios-view')"><i class="fas fa-chart-pie mr-3"></i> Relatórios</div>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            <header class="flex justify-between items-center mb-6">
+                <h2 id="tab-title" class="text-2xl font-bold">Dashboard Geral</h2>
+                <button onclick="logout()" class="text-red-500 hover:text-red-700">Sair</button>
+            </header>
+
+            <div id="dashboard-view" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded shadow">Status Abertos: <span class="text-3xl font-bold block">42</span></div>
+                    <div class="bg-white p-6 rounded shadow">Resolvidos: <span class="text-3xl font-bold block">128</span></div>
+                </div>
+            </div>
+            
+            <div id="entrada-view" class="tab-content">
+                <h3 class="text-lg font-bold mb-4">Nova Solicitação</h3>
+                <!-- Formulário de Entrada -->
+            </div>
+
+            <div id="admin-view" class="tab-content">
+                <!-- Tabela de Protocolos p/ Mudança de Status -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function login() { /* Lógica de fetch para API */ }
+        function switchTab(id) { 
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+        function logout() { localStorage.clear(); location.reload(); }
+    </script>
+</body>
+</html>
