@@ -13,6 +13,7 @@
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
+    <!-- Ecrã de Login -->
     <div id="login-screen" class="flex items-center justify-center min-h-screen">
         <div class="bg-white p-8 rounded-xl shadow-xl w-96 border border-slate-200">
             <h2 class="text-2xl font-bold text-center mb-6 text-blue-800">SERIPM 2026</h2>
@@ -22,71 +23,95 @@
         </div>
     </div>
 
+    <!-- Painel Principal -->
     <div id="dashboard" class="hidden flex h-screen">
+        <!-- Menu Lateral -->
         <aside class="w-64 bg-slate-900 text-white p-6 flex flex-col h-full">
             <h1 class="text-xl font-bold mb-8 border-b border-slate-700 pb-4">SERIPM 2026</h1>
-            <nav id="menu-nav" class="space-y-2 flex-1 overflow-y-auto no-scrollbar"></nav>
-            <button onclick="logout()" class="text-red-400 hover:text-red-300 mt-auto pt-4 border-t border-slate-700"><i class="fas fa-sign-out-alt mr-2"></i> Sair</button>
+            <nav id="menu-nav" class="space-y-2 flex-1 overflow-y-auto no-scrollbar">
+                <!-- Botões gerados via script consoante as permissões -->
+            </nav>
+            <button onclick="logout()" class="text-red-400 hover:text-red-300 mt-auto pt-4 border-t border-slate-700 w-full text-left">
+                <i class="fas fa-sign-out-alt mr-2"></i> Sair
+            </button>
         </aside>
 
+        <!-- Área de Conteúdo -->
         <main class="flex-1 p-8 overflow-y-auto">
             <header class="flex justify-between items-center mb-8">
                 <h2 id="tab-title" class="text-2xl font-bold text-slate-800">Painel Principal</h2>
                 <span id="display-user" class="bg-white px-4 py-2 rounded-lg shadow-sm font-medium"></span>
             </header>
             <div id="content-area" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[400px] overflow-x-auto">
-                <p>Bem-vindo ao sistema. Selecione uma aba no menu lateral.</p>
+                <p class="text-slate-500">Bem-vindo ao sistema. Selecione um setor no menu lateral para visualizar os dados.</p>
             </div>
         </main>
     </div>
 
     <script>
+        // URL da sua implantação do Apps Script (já configurada)
         const API_URL = "https://script.google.com/macros/s/AKfycbyIr7n_aWoKPvYxc50VhpxoWJq54TSHm7b4q7SkHUKhjzu58zgq7eOJNkPZRtv_UxUM/exec";
+        const ALL_TABS = ['ENTRADA', 'ADMINISTRATIVO', 'SUPERVISOR', 'COM FUNCIONÁRIO', 'IMPLANTAÇÃO', 'OBRA', 'GARANTIA', 'USUÁRIOS'];
 
+        // Verifica a sessão ao abrir a página
+        window.onload = () => {
+            const savedUser = localStorage.getItem('seripm_user');
+            if (savedUser) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('display-user').innerText = "Utilizador: " + savedUser;
+                construirMenu();
+            }
+        };
+
+        // Função de Autenticação
         async function fazerLogin() {
-            const username = document.getElementById('user').value;
-            const password = document.getElementById('pass').value;
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            
+            if (!u || !p) { alert("Preencha todos os campos."); return; }
+
+            const btn = document.querySelector('button');
+            btn.innerText = "A ENTRAR...";
+            btn.disabled = true;
 
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: "login", username, password })
+                    body: JSON.stringify({ action: "login", username: u, password: p })
                 });
                 const result = await response.json();
 
                 if (result.success) {
                     localStorage.setItem('seripm_user', result.username);
                     localStorage.setItem('seripm_role', result.role);
-                    localStorage.setItem('seripm_tabs', result.allowedTabs);
+                    localStorage.setItem('seripm_tabs', result.allowedTabs || ""); // Previne erros de "null"
                     location.reload();
                 } else {
                     alert("Erro: " + result.error);
+                    btn.innerText = "ENTRAR";
+                    btn.disabled = false;
                 }
             } catch (e) {
-                alert("Erro ao conectar ao servidor de login.");
+                alert("Erro ao conectar com o servidor. Verifique a URL do Web App.");
+                console.error(e);
+                btn.innerText = "ENTRAR";
+                btn.disabled = false;
             }
         }
 
-        window.onload = () => {
-            const user = localStorage.getItem('seripm_user');
-            if (user) {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('display-user').innerText = user;
-                construirMenu();
-            }
-        };
-
+        // Construção dinâmica do menu
         function construirMenu() {
             const nav = document.getElementById('menu-nav');
-            const allowed = localStorage.getItem('seripm_tabs').split(',');
-            const tabs = ['ENTRADA', 'ADMINISTRATIVO', 'SUPERVISOR', 'COM FUNCIONÁRIO', 'IMPLANTAÇÃO', 'OBRA', 'GARANTIA', 'USUÁRIOS'];
+            const role = localStorage.getItem('seripm_role');
+            const allowedRaw = localStorage.getItem('seripm_tabs') || "";
+            const allowed = allowedRaw.split(',').map(s => s.trim());
             
-            tabs.forEach(aba => {
-                // Se for SUPERVISOR ou se a aba estiver na lista de permissões
-                if (localStorage.getItem('seripm_role') === 'SUPERVISOR' || allowed.includes(aba)) {
+            ALL_TABS.forEach(aba => {
+                // Se o utilizador é SUPERVISOR ou a aba está nas permissões dele
+                if (role === 'SUPERVISOR' || allowed.includes(aba)) {
                     const btn = document.createElement('button');
-                    btn.className = "block w-full text-left p-2 hover:bg-blue-800 rounded transition";
+                    btn.className = "block w-full text-left p-3 hover:bg-blue-800 rounded transition font-medium mb-1";
                     btn.innerText = aba;
                     btn.onclick = () => trocarAba(aba);
                     nav.appendChild(btn);
@@ -94,10 +119,11 @@
             });
         }
 
+        // Troca de Abas e Busca de Dados
         async function trocarAba(aba) {
             document.getElementById('tab-title').innerText = aba;
             const content = document.getElementById('content-area');
-            content.innerHTML = `<p class="animate-pulse">A carregar...</p>`;
+            content.innerHTML = `<p class="text-slate-500 animate-pulse">A carregar dados de ${aba}...</p>`;
 
             try {
                 const response = await fetch(API_URL, {
@@ -106,33 +132,53 @@
                         action: aba === 'USUÁRIOS' ? 'getUsers' : 'getProtocols', 
                         tab: aba, 
                         role: localStorage.getItem('seripm_role'),
+                        allowedTabs: localStorage.getItem('seripm_tabs') || "",
                         username: localStorage.getItem('seripm_user')
                     })
                 });
+                
                 const result = await response.json();
+
                 if (result.success) {
                     renderizarTabela(result.data, content);
                 } else {
-                    content.innerHTML = `<p class="text-red-500">${result.error}</p>`;
+                    content.innerHTML = `<p class="text-red-500">Erro: ${result.error}</p>`;
                 }
-            } catch (e) { content.innerHTML = `<p class="text-red-500">Erro de ligação.</p>`; }
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = `<p class="text-red-500">Erro de ligação ao servidor.</p>`;
+            }
         }
 
+        // Renderização dinâmica da tabela HTML
         function renderizarTabela(dados, container) {
-            if (!dados || dados.length === 0) { container.innerHTML = "<p>Sem dados.</p>"; return; }
-            let html = `<table class="w-full text-xs text-left border-collapse"><thead class="bg-slate-800 text-white"><tr>`;
-            Object.keys(dados[0]).forEach(k => html += `<th class="px-2 py-2 border">${k}</th>`);
+            if (!dados || dados.length === 0) { 
+                container.innerHTML = "<p class='text-slate-500'>Nenhum registo encontrado nesta aba.</p>"; 
+                return; 
+            }
+            
+            let html = `<table class="w-full text-sm text-left border-collapse whitespace-nowrap"><thead class="bg-slate-800 text-white"><tr>`;
+            
+            // Cria os cabeçalhos a partir das chaves do objeto JSON
+            Object.keys(dados[0]).forEach(k => html += `<th class="px-4 py-3 border border-slate-700">${k}</th>`);
             html += `</tr></thead><tbody>`;
+            
+            // Preenche as linhas com os valores
             dados.forEach(row => {
-                html += `<tr class="border-b hover:bg-slate-50">`;
-                Object.values(row).forEach(v => html += `<td class="px-2 py-2 border">${v || '-'}</td>`);
+                html += `<tr class="border-b hover:bg-slate-50 transition">`;
+                Object.values(row).forEach(v => html += `<td class="px-4 py-2 border border-slate-200">${v || '-'}</td>`);
                 html += `</tr>`;
             });
             html += `</tbody></table>`;
+            
             container.innerHTML = html;
         }
 
-        function logout() { localStorage.clear(); location.reload(); }
+        // Encerrar Sessão
+        function logout() { 
+            localStorage.clear(); 
+            location.reload(); 
+        }
     </script>
 </body>
 </html>
