@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo SERIPM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+
+    <script>
+        let currentUser = "";
+        let currentRole = "";
+        let allowedTabs = [];
+
+        window.onload = () => {
+            const savedUser = localStorage.getItem('seripm_user');
+            if (savedUser) {
+                currentUser = savedUser;
+                currentRole = localStorage.getItem('seripm_role');
+                allowedTabs = localStorage.getItem('seripm_allowedTabs') ? localStorage.getItem('seripm_allowedTabs').split(',') : [];
+                initApp();
+            } else {
+                window.location.href = 'login.html'; // Redireciona se não logado
+            }
+        };
+
+        // Função para filtrar abas no menu
+        function renderMenu() {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = "";
+            const allPossibleTabs = ["ENTRADA", "ADMINISTRATIVO", "SUPERVISOR COM FUNCIONÁRIO", "IMPLANTAÇÃO", "GARANTIA", "RELATÓRIO ESTATÍSTICO"];
+            
+            allPossibleTabs.forEach(tab => {
+                // Se for Supervisor, vê tudo. Se não, apenas o que está em allowedTabs
+                if (currentRole === "SUPERVISOR" || allowedTabs.includes(tab)) {
+                    container.innerHTML += `<button onclick="loadData('${tab}')" class="p-2 bg-white rounded">${tab}</button>`;
+                }
+            });
+        }
+
+        async function fetchAPI(payload) {
+            payload.username = currentUser;
+            payload.role = currentRole;
+            payload.allowedTabs = allowedTabs.join(',');
+            const response = await fetch("SUA_URL_DO_GAS_AQUI", {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            return await response.json();
+        }
+
+        // Função de Login (Exemplo simplificado)
+        async function handleLogin() {
+            const res = await fetchAPI({ action: "login", username: user, password: pass });
+            if (res.success) {
+                localStorage.setItem('seripm_user', res.username);
+                localStorage.setItem('seripm_role', res.role);
+                localStorage.setItem('seripm_allowedTabs', res.allowedTabs);
+                window.location.reload();
+            }
+        }
+    </script>
+
+    <div id="menu-container" class="flex gap-2 p-4 bg-slate-200">
+        </div>
+    
+    <div id="content-container" class="p-4">
+        </div>
+
+</body>
+</html>
