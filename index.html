@@ -83,8 +83,14 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    // Normalização do perfil: Transforma "Super Administrador" em "SUPERVISOR"
+                    let perfil = result.role ? result.role.toUpperCase() : "";
+                    if (perfil === 'SUPER ADMINISTRADOR' || perfil === 'ADMINISTRADOR') {
+                        perfil = 'SUPERVISOR';
+                    }
+
                     localStorage.setItem('seripm_user', result.username);
-                    localStorage.setItem('seripm_role', result.role);
+                    localStorage.setItem('seripm_role', perfil);
                     localStorage.setItem('seripm_tabs', result.allowedTabs || ""); // Previne erros de "null"
                     location.reload();
                 } else {
@@ -105,18 +111,31 @@
             const nav = document.getElementById('menu-nav');
             const role = localStorage.getItem('seripm_role');
             const allowedRaw = localStorage.getItem('seripm_tabs') || "";
-            const allowed = allowedRaw.split(',').map(s => s.trim());
+            const allowed = allowedRaw.split(',').map(s => s.trim().toUpperCase());
             
+            let abasAdicionadas = 0;
+
             ALL_TABS.forEach(aba => {
                 // Se o utilizador é SUPERVISOR ou a aba está nas permissões dele
-                if (role === 'SUPERVISOR' || allowed.includes(aba)) {
+                if (role === 'SUPERVISOR' || allowed.includes(aba.toUpperCase())) {
                     const btn = document.createElement('button');
                     btn.className = "block w-full text-left p-3 hover:bg-blue-800 rounded transition font-medium mb-1";
                     btn.innerText = aba;
                     btn.onclick = () => trocarAba(aba);
                     nav.appendChild(btn);
+                    abasAdicionadas++;
                 }
             });
+
+            if (abasAdicionadas === 0) {
+                nav.innerHTML = `<p class="text-sm text-red-300 p-2">Nenhuma aba configurada para o perfil: ${role}</p>`;
+            } else {
+                // Auto-carregar a primeira aba disponível para não deixar a tela em branco
+                const primeiroBotao = nav.querySelector('button');
+                if (primeiroBotao) {
+                    primeiroBotao.click();
+                }
+            }
         }
 
         // Troca de Abas e Busca de Dados
