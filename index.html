@@ -292,8 +292,8 @@
                 const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", username: u, password: p }) });
                 const result = await response.json();
                 if (result.success) {
-                    let perfil = result.role ? result.role.toUpperCase() : "";
-                    if (perfil === 'SUPER ADMINISTRADOR' || perfil === 'ADMINISTRADOR') perfil = 'SUPERVISOR';
+                    // O backend já retorna o perfil normalizado (SUPER_ADMIN, SUPERVISOR, ADMINISTRATIVO, ATENDIMENTO)
+                    const perfil = result.role ? result.role.toUpperCase() : "ATENDIMENTO";
                     localStorage.setItem('seripm_user', result.username);
                     localStorage.setItem('seripm_role', perfil);
                     localStorage.setItem('seripm_tabs', result.allowedTabs || "");
@@ -321,7 +321,7 @@
             let abasAdicionadas = 0;
 
             ALL_TABS.forEach(aba => {
-                if (role === 'SUPERVISOR' || allowed.includes(aba.toUpperCase())) {
+                if (role === 'SUPER_ADMIN' || role === 'SUPERVISOR' || role === 'ADMINISTRATIVO' || allowed.includes(aba.toUpperCase())) {
                     const icone = TAB_ICONS[aba.toUpperCase()] || 'fa-file-alt';
                     const btn = document.createElement('button');
                     btn.id = `btn-menu-${aba}`;
