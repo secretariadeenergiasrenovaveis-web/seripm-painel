@@ -17,6 +17,12 @@
         .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         
+        /* Barra de rolagem horizontal estilizada */
+        #data-table-wrapper::-webkit-scrollbar { height: 8px; }
+        #data-table-wrapper::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        #data-table-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        #data-table-wrapper::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
         /* Estilos específicos para Impressão / PDF do Relatório */
         @media print {
             aside, header, #btn-exportar, #login-screen { display: none !important; }
@@ -157,7 +163,7 @@
                                 <input type="text" id="search-input" onkeyup="filtrarTabela()" class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Pesquisar...">
                             </div>
                         </div>
-                        <div class="overflow-x-auto relative min-h-[300px]">
+                        <div class="overflow-x-auto relative min-h-[300px]" id="data-table-wrapper">
                             <div id="content-area" class="w-full"></div>
                         </div>
                     </div>
@@ -307,6 +313,7 @@
             document.getElementById('dashboard').classList.remove('hidden');
             document.getElementById('display-user').innerText = username.toUpperCase();
             document.getElementById('display-role').innerText = role;
+            console.log('✅ Sessão iniciada:', { username, role, seripm_role: localStorage.getItem('seripm_role'), seripm_tabs: localStorage.getItem('seripm_tabs') });
             construirMenu();
         }
 
@@ -317,8 +324,11 @@
             const nav = document.getElementById('menu-nav');
             nav.innerHTML = ''; 
             const role = localStorage.getItem('seripm_role');
-            const allowed = (localStorage.getItem('seripm_tabs') || "").split(',').map(s => s.trim().toUpperCase());
+            const allowedTabs = localStorage.getItem('seripm_tabs') || "";
+            const allowed = allowedTabs.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
             let abasAdicionadas = 0;
+            
+            console.log('DEBUG Menu:', { role, allowedTabs, allowed });
 
             ALL_TABS.forEach(aba => {
                 if (role === 'SUPER_ADMIN' || role === 'SUPERVISOR' || role === 'ADMINISTRATIVO' || allowed.includes(aba.toUpperCase())) {
@@ -575,20 +585,36 @@
 
         function renderizarTabela(dados, container) {
             if (!dados || dados.length === 0) { container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-400"><p>Nenhum registo encontrado.</p></div>`; return; }
-            let html = `<table class="w-full text-sm text-left whitespace-nowrap" id="data-table"><thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200 sticky top-0 shadow-sm z-10"><tr>`;
-            const colunas = Object.keys(dados[0]);
-            colunas.forEach(k => html += `<th class="px-6 py-4">${k}</th>`);
+            
+            // Colunas principais a exibir na tabela
+            const colunasExibidas = ['DATA', 'PROTOCOLO', 'ATENDENTE', 'SOLICITANTE', 'BAIRRO'];
+            
+            let html = `<table class="w-full text-sm text-left" id="data-table"><thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200 sticky top-0 shadow-sm z-10"><tr>`;
+            
+            colunasExibidas.forEach(k => html += `<th class="px-6 py-4">${k}</th>`);
+            html += `<th class="px-6 py-4 text-center">Status</th>`;
             html += `<th class="px-6 py-4 text-right">Ações</th></tr></thead><tbody class="divide-y divide-slate-100 text-slate-700">`;
             
             dados.forEach((row, index) => {
-                html += `<tr class="hover:bg-blue-50/50 transition cursor-pointer" onclick="abrirDetalhes(${index})">`;
-                colunas.forEach(k => {
+                html += `<tr class="hover:bg-blue-50/50 transition cursor-pointer">`;
+                
+                colunasExibidas.forEach(k => {
                     let valor = row[k] || '-';
-                    if (k.toUpperCase() === 'STATUS') valor = formatarStatus(valor);
-                    if (k.toUpperCase() === 'PROTOCOLO') valor = `<span class="font-semibold text-blue-700">${valor}</span>`;
-                    html += `<td class="px-6 py-4 max-w-xs truncate" title="${row[k] || ''}">${valor}</td>`;
+                    // Procura a coluna de forma case-insensitive
+                    let coluna = Object.keys(row).find(col => col.toUpperCase() === k);
+                    if (coluna) valor = row[coluna] || '-';
+                    
+                    if (k === 'PROTOCOLO') valor = `<span class="font-semibold text-blue-700">${valor}</span>`;
+                    if (k === 'DATA') valor = `<span class="text-slate-600 text-xs">${valor}</span>`;
+                    html += `<td class="px-6 py-4 text-nowrap">${valor}</td>`;
                 });
-                html += `<td class="px-6 py-4 text-right"><button class="text-blue-600 hover:bg-blue-100 p-2 rounded-lg" onclick="event.stopPropagation(); abrirDetalhes(${index});"><i class="fas fa-edit"></i> Gerir</button></td></tr>`;
+                
+                // Coluna Status
+                let status = row['STATUS'] || row['status'] || '-';
+                html += `<td class="px-6 py-4 text-center">${formatarStatus(status)}</td>`;
+                
+                // Botão Detalhes/Gerir
+                html += `<td class="px-6 py-4 text-right"><button class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-lg transition font-medium text-sm" onclick="event.stopPropagation(); abrirDetalhes(${index});"><i class="fas fa-eye"></i> Detalhes</button></td></tr>`;
             });
             container.innerHTML = html + `</tbody></table>`;
         }
@@ -606,7 +632,10 @@
             const tr = document.getElementById('data-table')?.getElementsByTagName('tr');
             if(!tr) return;
             for (let i = 1; i < tr.length; i++) {
-                let visible = Array.from(tr[i].getElementsByTagName('td')).some((td, j) => j < tr[i].cells.length - 1 && td.innerText.toUpperCase().indexOf(filter) > -1);
+                let visible = Array.from(tr[i].getElementsByTagName('td')).some((td, j) => {
+                    // Verifica apenas as primeiras 6 colunas (DATA, PROTOCOLO, ATENDENTE, SOLICITANTE, BAIRRO, STATUS)
+                    return j < 6 && td.innerText.toUpperCase().indexOf(filter) > -1;
+                });
                 tr[i].style.display = visible ? "" : "none";
             }
         }
