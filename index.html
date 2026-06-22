@@ -250,10 +250,10 @@
                         <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Telefone</label><input type="text" id="novo_telefone" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
                         <div class="md:col-span-2 pt-2 border-t border-slate-200 mt-2"><h4 class="text-sm font-bold text-slate-700 mb-3"><i class="fas fa-map-marker-alt text-blue-500 mr-1"></i> Localização do Problema</h4></div>
                         <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Endereço do Problema *</label><input type="text" id="novo_endereco" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
-                        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Bairro *</label><input type="text" id="novo_bairro" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Bairro *</label><select id="novo_bairro" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"><option value="">-- Carregando Bairros --</option></select></div>
                         <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Ponto de Referência</label><input type="text" id="novo_referencia" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
                         <div class="md:col-span-2 pt-2 border-t border-slate-200 mt-2"><h4 class="text-sm font-bold text-slate-700 mb-3"><i class="fas fa-tools text-blue-500 mr-1"></i> Detalhes da Solicitação</h4></div>
-                        <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo de Serviço / Solicitação *</label><input type="text" id="novo_servico" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo de Serviço / Solicitação *</label><select id="novo_servico" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"><option value="">-- Carregando Serviços --</option></select></div>
                         <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Detalhes Adicionais</label><textarea id="novo_detalhes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea></div>
                         <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Observações Internas</label><textarea id="novo_observacoes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea></div>
                     </div>
@@ -641,9 +641,9 @@
         }
 
         // ==========================================
-        // MODAIS E SALVAMENTO DE DADOS (Inalterado)
+        // MODAIS E SALVAMENTO DE DADOS
         // ==========================================
-        function abrirDetalhes(index) {
+        async function abrirDetalhes(index) {
             const rowData = currentData[index];
             if (!rowData) return;
             const modal = document.getElementById('modal-detalhes'), box = document.getElementById('modal-box'), body = document.getElementById('modal-body'), footerActions = document.getElementById('modal-footer-actions');
@@ -659,7 +659,26 @@
 
             if (currentTab !== 'USUÁRIOS' && protocolId) {
                 const s = currentStatus ? currentStatus.toUpperCase() : '';
-                footerActions.innerHTML = `<div class="flex items-center gap-3"><select id="edit_status" class="bg-slate-50 border border-slate-300 text-sm rounded-lg p-2"><option value="ABERTO" ${s==='ABERTO'?'selected':''}>Aberto</option><option value="EM ANDAMENTO" ${s==='EM ANDAMENTO'?'selected':''}>Em Andamento</option><option value="RESOLVIDO" ${s==='RESOLVIDO'?'selected':''}>Resolvido</option></select><button onclick="salvarStatus('${protocolId}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Atualizar</button></div><button onclick="fecharModal()" class="px-5 py-2 border rounded-lg">Fechar</button>`;
+                
+                // Busca dados dinâmicos (Status, Bairros, Serviços)
+                try {
+                    const respDynamic = await fetch(API_URL, { 
+                        method: 'POST', 
+                        body: JSON.stringify({ action: "getDynamicData" }) 
+                    });
+                    const dataDynamic = await respDynamic.json();
+                    
+                    let statusOptions = '<option value="">-- Selecionar Status --</option>';
+                    if (dataDynamic.success) {
+                        dataDynamic.status.forEach(st => {
+                            statusOptions += `<option value="${st}" ${s === st ? 'selected' : ''}>${st}</option>`;
+                        });
+                    }
+                    
+                    footerActions.innerHTML = `<div class="flex items-center gap-3"><select id="edit_status" class="bg-white border border-slate-300 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500">${statusOptions}</select><button onclick="salvarStatus('${protocolId}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">Atualizar Status</button></div><button onclick="fecharModal()" class="px-5 py-2 border rounded-lg">Fechar</button>`;
+                } catch (e) {
+                    footerActions.innerHTML = `<div class="flex items-center gap-3"><select id="edit_status" class="bg-white border border-slate-300 text-sm rounded-lg p-2"><option value="ABERTO">Aberto</option><option value="EM ANDAMENTO">Em Andamento</option><option value="RESOLVIDO">Resolvido</option></select><button onclick="salvarStatus('${protocolId}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Atualizar Status</button></div><button onclick="fecharModal()" class="px-5 py-2 border rounded-lg">Fechar</button>`;
+                }
             } else footerActions.innerHTML = `<button onclick="fecharModal()" class="px-5 py-2 border rounded-lg ml-auto">Fechar</button>`;
             
             modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); box.classList.remove('scale-95'); }, 10);
@@ -669,14 +688,56 @@
             const newStatus = document.getElementById('edit_status').value, btn = event.target, origTxt = btn.innerHTML;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; btn.disabled = true;
             try {
-                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateStatus", tab: currentTab, protocolId: protocolId, newStatus: newStatus }) });
+                const response = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: "updateStatus", 
+                        tab: currentTab, 
+                        protocolId: protocolId, 
+                        newStatus: newStatus,
+                        username: localStorage.getItem('seripm_user')
+                    }) 
+                });
                 if ((await response.json()).success) { fecharModal(); trocarAba(currentTab, false); } else alert("Erro ao atualizar.");
             } catch (e) { alert("Erro de rede."); }
             btn.innerHTML = origTxt; btn.disabled = false;
         }
 
         function fecharModal() { const m = document.getElementById('modal-detalhes'), b = document.getElementById('modal-box'); m.classList.add('opacity-0'); b.classList.add('scale-95'); setTimeout(() => m.classList.add('hidden'), 300); }
-        function abrirModalNovo() { document.getElementById('form-novo').reset(); const m = document.getElementById('modal-novo'), b = document.getElementById('modal-novo-box'); m.classList.remove('hidden'); setTimeout(() => { m.classList.remove('opacity-0'); b.classList.remove('scale-95'); }, 10); }
+        async function abrirModalNovo() { 
+            document.getElementById('form-novo').reset(); 
+            const m = document.getElementById('modal-novo'), b = document.getElementById('modal-novo-box'); 
+            m.classList.remove('hidden'); 
+            
+            // Carrega dados dinâmicos (Bairros, Serviços)
+            try {
+                const respDynamic = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: "getDynamicData" }) 
+                });
+                const dataDynamic = await respDynamic.json();
+                
+                if (dataDynamic.success) {
+                    // Preenche Bairros
+                    let bairroHtml = '<option value="">-- Selecionar Bairro --</option>';
+                    dataDynamic.bairros.forEach(b => {
+                        bairroHtml += `<option value="${b}">${b}</option>`;
+                    });
+                    document.getElementById('novo_bairro').innerHTML = bairroHtml;
+                    
+                    // Preenche Serviços
+                    let servicoHtml = '<option value="">-- Selecionar Serviço --</option>';
+                    dataDynamic.servicos.forEach(s => {
+                        servicoHtml += `<option value="${s}">${s}</option>`;
+                    });
+                    document.getElementById('novo_servico').innerHTML = servicoHtml;
+                }
+            } catch (e) {
+                console.error('Erro ao carregar dados dinâmicos:', e);
+            }
+            
+            setTimeout(() => { m.classList.remove('opacity-0'); b.classList.remove('scale-95'); }, 10); 
+        }
         function fecharModalNovo() { const m = document.getElementById('modal-novo'), b = document.getElementById('modal-novo-box'); m.classList.add('opacity-0'); b.classList.add('scale-95'); setTimeout(() => m.classList.add('hidden'), 300); }
 
         async function salvarNovoProtocolo() {
@@ -685,9 +746,28 @@
             if (!valido) { alert("Preencha os campos obrigatórios."); return; }
 
             const origTxt = btn.innerHTML; btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> A Guardar...`; btn.disabled = true;
-            const payloadData = { solicitante: document.getElementById('novo_solicitante').value, cpf: document.getElementById('novo_cpf').value, telefone: document.getElementById('novo_telefone').value, endereco: document.getElementById('novo_endereco').value, bairro: document.getElementById('novo_bairro').value, referencia: document.getElementById('novo_referencia').value, servico: document.getElementById('novo_servico').value, detalhes: document.getElementById('novo_detalhes').value, observacoes: document.getElementById('novo_observacoes').value };
+            const payloadData = { 
+                solicitante: document.getElementById('novo_solicitante').value, 
+                cpf: document.getElementById('novo_cpf').value, 
+                telefone: document.getElementById('novo_telefone').value, 
+                endereco: document.getElementById('novo_endereco').value, 
+                bairro: document.getElementById('novo_bairro').value, 
+                referencia: document.getElementById('novo_referencia').value, 
+                servico: document.getElementById('novo_servico').value, 
+                detalhes: document.getElementById('novo_detalhes').value, 
+                observacoes: document.getElementById('novo_observacoes').value,
+                atendente: localStorage.getItem('seripm_user')
+            };
             try {
-                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "createProtocol", tab: currentTab, username: localStorage.getItem('seripm_user'), data: payloadData }) });
+                const response = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: "createProtocol", 
+                        tab: currentTab, 
+                        username: localStorage.getItem('seripm_user'), 
+                        data: payloadData 
+                    }) 
+                });
                 const result = await response.json();
                 if (result.success) { fecharModalNovo(); alert(`Protocolo: ${result.protocolo}`); trocarAba(currentTab, false); } else alert("Erro: " + result.error);
             } catch (e) { alert("Erro de ligação."); }
