@@ -235,6 +235,38 @@
         </div>
     </div>
 
+    <!-- MODAL: Confirmação de Protocolo Criado -->
+    <div id="modal-sucesso" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300" id="modal-sucesso-box">
+            <div class="p-6 text-center">
+                <div class="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+                    <i class="fas fa-check text-emerald-600 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Protocolo Criado com Sucesso!</h3>
+                <p class="text-slate-500 mb-6">Seu protocolo foi registrado no sistema.</p>
+                
+                <div class="bg-slate-50 p-4 rounded-lg mb-6 border-2 border-emerald-200">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Número do Protocolo</p>
+                    <div class="flex items-center justify-between gap-3">
+                        <p id="protocolo-numero" class="text-2xl font-bold text-emerald-600 font-mono break-all"></p>
+                        <button onclick="copiarProtocolo()" class="text-emerald-600 hover:text-emerald-700 bg-emerald-100 hover:bg-emerald-200 p-2 rounded-lg transition" title="Copiar número">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="fecharModalSucesso()" class="flex-1 px-5 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition">
+                        Fechar
+                    </button>
+                    <button onclick="fecharModalSucessoENovoProtocolo()" class="flex-1 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition">
+                        Novo Protocolo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: Novo Protocolo -->
     <div id="modal-novo" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="modal-novo-box">
@@ -769,9 +801,59 @@
                     }) 
                 });
                 const result = await response.json();
-                if (result.success) { fecharModalNovo(); alert(`Protocolo: ${result.protocolo}`); trocarAba(currentTab, false); } else alert("Erro: " + result.error);
+                if (result.success) { 
+                    fecharModalNovo(); 
+                    mostrarModalSucesso(result.protocolo);
+                    trocarAba(currentTab, false); 
+                } else alert("Erro: " + result.error);
             } catch (e) { alert("Erro de ligação."); }
             btn.innerHTML = origTxt; btn.disabled = false;
+        }
+
+        // ==========================================
+        // MODAL DE SUCESSO - PROTOCOLO CRIADO
+        // ==========================================
+        function mostrarModalSucesso(protocoloNumero) {
+            document.getElementById('protocolo-numero').textContent = protocoloNumero;
+            const modal = document.getElementById('modal-sucesso');
+            modal.classList.remove('hidden');
+            
+            // Anima a entrada
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('modal-sucesso-box').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function fecharModalSucesso() {
+            const modal = document.getElementById('modal-sucesso');
+            modal.classList.add('opacity-0');
+            document.getElementById('modal-sucesso-box').classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function fecharModalSucessoENovoProtocolo() {
+            fecharModalSucesso();
+            setTimeout(() => abrirModalNovo(), 300);
+        }
+
+        function copiarProtocolo() {
+            const protocolo = document.getElementById('protocolo-numero').textContent;
+            navigator.clipboard.writeText(protocolo).then(() => {
+                // Feedback visual
+                const btn = event.target.closest('button');
+                const iconOriginal = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.add('bg-emerald-300');
+                
+                setTimeout(() => {
+                    btn.innerHTML = iconOriginal;
+                    btn.classList.remove('bg-emerald-300');
+                }, 2000);
+            });
         }
     </script>
 </body>
