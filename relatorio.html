@@ -1,1 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Gerencial - SERIPM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @media print { 
+            .no-print { display: none !important; } 
+            body { background: white !important; font-size: 10pt; } 
+            #pdf-container { padding: 0 !important; max-width: 100% !important; margin: 0 auto; } 
+            .avoid-break { page-break-inside: avoid; }
+            img { max-width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased p-4 md:p-8">
 
+    <div class="max-w-[1200px] mx-auto space-y-6" id="pdf-container">
+        
+        <!-- Header com Logos -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 avoid-break">
+            <div class="flex items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-200">
+                <img src="images/brasao-marica.png" alt="Brasão Maricá" class="h-16 object-contain">
+                <div class="text-center flex-1">
+                    <h1 class="text-xl font-black text-slate-900 uppercase">SECRETARIA DE ENERGIAS RENOVÁVEIS</h1>
+                    <p class="text-sm text-slate-600">Prefeitura Municipal de Maricá</p>
+                </div>
+                <img src="images/sec.energ.renov.ilum.publica-marica.png" alt="Secretaria" class="h-16 object-contain">
+            </div>
+            
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 uppercase"><i class="fa-solid fa-chart-pie text-blue-600 mr-2"></i> Relatório Analítico e Estatístico</h2>
+                    <p class="text-xs font-bold text-slate-500 uppercase mt-1">Base: <span id="lbl-aba" class="text-blue-600">CARREGANDO...</span> | Emissão: <span id="lbl-data"></span></p>
+                </div>
+                <div class="no-print flex gap-2">
+                    <button onclick="window.print()" class="bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-print mr-1"></i> Imprimir</button>
+                    <button onclick="gerarPDF()" class="bg-rose-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-file-pdf mr-1"></i> Baixar PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 avoid-break">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200"><p class="text-[10px] uppercase font-black text-slate-400">Total</p><p id="card-total" class="text-3xl font-black text-blue-600">0</p></div>
+            <div class="bg-white p-5 rounded-2xl border-b-4 border-b-amber-400"><p class="text-[10px] uppercase font-black text-slate-400">Abertos</p><p id="card-abertos" class="text-3xl font-black text-slate-800">0</p></div>
+            <div class="bg-white p-5 rounded-2xl border-b-4 border-b-rose-400"><p class="text-[10px] uppercase font-black text-slate-400">Garantia</p><p id="card-garantia" class="text-3xl font-black text-slate-800">0</p></div>
+            <div class="bg-white p-5 rounded-2xl border-b-4 border-b-emerald-400"><p class="text-[10px] uppercase font-black text-slate-400">Resolvidos</p><p id="card-resolvidos" class="text-3xl font-black text-slate-800">0</p></div>
+            <div class="bg-white p-5 rounded-2xl border-b-4 border-b-slate-400"><p class="text-[10px] uppercase font-black text-slate-400">Atrasados</p><p id="card-atrasados" class="text-3xl font-black text-slate-800">0</p></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 avoid-break">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 md:col-span-1"><h3 class="text-xs font-black uppercase text-center mb-4">Status</h3><div class="h-64 w-full"><canvas id="chartStatus"></canvas></div></div>
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 md:col-span-2"><h3 class="text-xs font-black uppercase text-center mb-4">Top 10 Bairros</h3><div class="h-64 w-full"><canvas id="chartBairros"></canvas></div></div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden avoid-break">
+            <div class="p-4 bg-slate-50 border-b"><h3 class="text-xs font-black uppercase"><i class="fa-solid fa-map-location-dot text-blue-600 mr-2"></i>Detalhamento por Bairro</h3></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead><tr class="bg-white border-b text-[10px] font-black uppercase"><th class="p-3.5">Bairro</th><th class="p-3.5 text-center text-blue-700">Total</th><th class="p-3.5 text-center text-amber-600">Abertos</th><th class="p-3.5 text-center text-rose-600">Garantia</th><th class="p-3.5 text-center text-emerald-600">Resolvidos</th><th class="p-3.5 text-center text-slate-500">Atrasados</th></tr></thead>
+                    <tbody id="resumo-bairros-body" class="divide-y divide-slate-100 font-bold text-slate-700"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function sanitizarBairro(nome) {
+            if (!nome) return "NÃO INFORMADO";
+            return nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        }
+
+        window.onload = () => {
+            const rawData = sessionStorage.getItem('seripm_report_data');
+            document.getElementById('lbl-aba').textContent = sessionStorage.getItem('seripm_report_tab') || "GERAL";
+            document.getElementById('lbl-data').textContent = new Date().toLocaleString('pt-BR');
+            if (!rawData) return alert("Sem dados para carregar.");
+            processarEstatisticas(JSON.parse(rawData));
+        };
+
+        function processarEstatisticas(data) {
+            let stats = { total: 0, abertos: 0, garantia: 0, resolvidos: 0, atrasados: 0 };
+            let stMap = {}, brMap = {};
+
+            data.forEach(p => {
+                // Sanitização do Bairro para evitar duplicidade
+                const b = sanitizarBairro(p.bairro);
+                
+                // Cálculo de Atraso Dinâmico
+                const dataAtual = new Date();
+                const dataProtocolo = new Date(p.dataHora);
+                const diffDays = Math.ceil(Math.abs(dataAtual - dataProtocolo) / (1000 * 60 * 60 * 24));
+                
+                let statusFinal = p.status.toUpperCase();
+                if (statusFinal === "ABERTO" && diffDays > 15) {
+                    statusFinal = "ATRASADO";
+                }
+
+                // Acumuladores Globais
+                stats.total++;
+                if (statusFinal === "ABERTO") stats.abertos++;
+                else if (statusFinal === "GARANTIA") stats.garantia++;
+                else if (statusFinal === "RESOLVIDO") stats.resolvidos++;
+                else if (statusFinal === "ATRASADO") stats.atrasados++;
+
+                stMap[statusFinal] = (stMap[statusFinal] || 0) + 1;
+                
+                // Acumuladores por Bairro
+                if (!brMap[b]) brMap[b] = { total: 0, ab: 0, ga: 0, re: 0, at: 0 };
+                brMap[b].total++;
+                if (statusFinal === "ABERTO") brMap[b].ab++;
+                else if (statusFinal === "GARANTIA") brMap[b].ga++;
+                else if (statusFinal === "RESOLVIDO") brMap[b].re++;
+                else if (statusFinal === "ATRASADO") brMap[b].at++;
+            });
+
+            // Atualização dos Cards
+            document.getElementById('card-total').textContent = stats.total;
+            document.getElementById('card-abertos').textContent = stats.abertos;
+            document.getElementById('card-garantia').textContent = stats.garantia;
+            document.getElementById('card-resolvidos').textContent = stats.resolvidos;
+            document.getElementById('card-atrasados').textContent = stats.atrasados;
+
+            // Renderização de Gráficos e Tabela
+            let arrBairros = Object.entries(brMap).sort((a,b) => b[1].total - a[1].total);
+            
+            new Chart(document.getElementById('chartStatus').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(stMap), datasets: [{ data: Object.values(stMap), backgroundColor: ['#fbbf24','#f43f5e','#34d399','#64748b'] }] }, options: { animation: false } });
+            new Chart(document.getElementById('chartBairros').getContext('2d'), { type: 'bar', data: { labels: arrBairros.slice(0,10).map(i=>i[0]), datasets: [{ data: arrBairros.slice(0,10).map(i=>i[1].total), backgroundColor: '#3b82f6' }] }, options: { animation: false, plugins: { legend: { display: false } } } });
+
+            document.getElementById('resumo-bairros-body').innerHTML = arrBairros.map(([b, s]) => `
+                <tr class="${s.at > 0 ? 'bg-rose-50/50' : ''}">
+                    <td class="p-3.5 tracking-wide">${b}</td>
+                    <td class="p-3.5 text-center text-blue-700 font-black">${s.total}</td>
+                    <td class="p-3.5 text-center">${s.ab||'-'}</td>
+                    <td class="p-3.5 text-center">${s.ga||'-'}</td>
+                    <td class="p-3.5 text-center">${s.re||'-'}</td>
+                    <td class="p-3.5 text-center font-bold text-rose-600">${s.at||'-'}</td>
+                </tr>`).join('');
+        }
+
+        function gerarPDF() { html2pdf().set({ margin: 10, filename: `Dashboard_SERIPM.pdf`, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(document.getElementById('pdf-container')).save(); }
+    </script>
+</body>
+</html>

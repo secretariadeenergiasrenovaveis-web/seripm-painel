@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SERIPM 2026 - Portal de Execução (Empresa)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Barra de rolagem estilizada */
+        #protocolos-container::-webkit-scrollbar { height: 8px; }
+        #protocolos-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        #protocolos-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        #protocolos-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Estilos para Impressão / PDF */
+        @media print {
+            aside, .filters, .actions, #login-screen { display: none !important; }
+            .page-break { page-break-after: always; }
+            .header-print { display: block !important; }
+            body { background: white; }
+            .shadow, .shadow-sm, .border-slate { border: 1px solid #e2e8f0 !important; }
+        }
+        
+        .header-print {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid #1e293b;
+            margin-bottom: 20px;
+        }
+        
+        .header-print img { height: 60px; margin: 0 10px; }
+        .header-print .logos { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 15px; }
+        .header-print h1 { font-size: 20px; font-weight: bold; color: #1e293b; margin: 10px 0; }
+        .header-print p { font-size: 12px; color: #64748b; }
+        
+        /* Cartão do protocolo */
+        .protocol-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .protocol-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .protocol-card.selected {
+            border-left: 4px solid #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- Tela de Login -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+        <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-building text-3xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-slate-800">SERIPM</h2>
+                <p class="text-slate-500 mt-2">Portal de Execução (Empresa)</p>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Utilizador</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-user text-slate-400"></i></div>
+                        <input type="text" id="user" class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition outline-none" placeholder="O seu utilizador">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Palavra-passe</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-lock text-slate-400"></i></div>
+                        <input type="password" id="pass" class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition outline-none" placeholder="••••••••">
+                    </div>
+                </div>
+                <button onclick="fazerLogin()" id="btn-login" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition flex justify-center items-center gap-2">
+                    <span>Aceder ao Sistema</span><i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layout da Página Empresa -->
+    <div id="empresa-dashboard" class="hidden min-h-screen">
+        
+        <!-- Header com Logo da Empresa -->
+        <header class="bg-white shadow-md sticky top-0 z-20">
+            <div class="container mx-auto px-4 md:px-8 py-4 flex items-center justify-between gap-4">
+                <!-- Logo da Empresa (perfilx.png) -->
+                <div class="flex items-center gap-4">
+                    <img src="images/perfilx.png" alt="Logo da Empresa" class="h-14 object-contain">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">Portal de Execução</h1>
+                        <p class="text-sm text-slate-500">Protocolos para Execução de Campo</p>
+                    </div>
+                </div>
+                
+                <!-- Dados do Usuário e Logout -->
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p id="display-user-empresa" class="text-sm font-semibold text-slate-700"></p>
+                        <p class="text-xs text-slate-500">Empresa</p>
+                    </div>
+                    <button onclick="logoutEmpresa()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-medium flex items-center gap-2">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <main class="container mx-auto px-4 md:px-8 py-8">
+            
+            <!-- Filtros e Ações -->
+            <div class="filters bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <!-- Filtro por Bairro -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Filtrar por Bairro</label>
+                        <select id="filter-bairro" onchange="filtrarProtocolos()" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none">
+                            <option value="">-- Todos os Bairros --</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Contadores -->
+                    <div class="bg-slate-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Total de Protocolos</p>
+                        <p class="text-2xl font-bold text-slate-800" id="total-protocolos">0</p>
+                    </div>
+                    
+                    <!-- Selecionados -->
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Selecionados</p>
+                        <p class="text-2xl font-bold text-blue-600" id="total-selecionados">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações de Impressão/PDF -->
+            <div class="actions bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-wrap gap-3">
+                <button onclick="selecionarTodos()" class="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition flex items-center gap-2 font-medium text-sm">
+                    <i class="fas fa-check-square"></i> Selecionar Tudo
+                </button>
+                <button onclick="desselecionar()" class="bg-slate-400 text-white px-4 py-2 rounded-lg hover:bg-slate-500 transition flex items-center gap-2 font-medium text-sm">
+                    <i class="fas fa-times-circle"></i> Limpar Seleção
+                </button>
+                <div class="flex-1"></div>
+                <button onclick="imprimirSelecionados()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-medium text-sm">
+                    <i class="fas fa-print"></i> Imprimir Selecionados
+                </button>
+                <button onclick="gerarPDFSelecionados()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2 font-medium text-sm">
+                    <i class="fas fa-file-pdf"></i> Gerar PDF
+                </button>
+                <button onclick="exportarCSVSelecionados()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 font-medium text-sm">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+            </div>
+
+            <!-- Lista de Protocolos -->
+            <div id="protocolos-container" class="space-y-4 pb-10">
+                <!-- Preenchido via JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbz6wLfSYiLQqlGycytiMrX4ieVOGTnq9B8r2hpZToOlCpygK16voVbGsw9C6XrbGskp/exec";
+        
+        let protocolosGlobais = [];
+        let protocolosSelecionados = new Set();
+        let usuarioEmpresa = "";
+
+        window.onload = () => {
+            const savedUser = localStorage.getItem('seripm_user_empresa');
+            if (savedUser) iniciarSessaoEmpresa(savedUser);
+        };
+
+        async function fazerLogin() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            const btn = document.getElementById('btn-login');
+            
+            if (!u || !p) { alert("Preencha as suas credenciais."); return; }
+            
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> A validar...`; 
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: "login", username: u, password: p }) 
+                });
+                const result = await response.json();
+                
+                // Verifica se é usuário de empresa (role EMPRESA ou EXECUTOR)
+                if (result.success && (result.role === 'EMPRESA' || result.role === 'EXECUTOR')) {
+                    localStorage.setItem('seripm_user_empresa', result.username);
+                    localStorage.setItem('seripm_role_empresa', result.role);
+                    iniciarSessaoEmpresa(result.username);
+                } else {
+                    alert("Erro: Acesso apenas para usuários de Empresa."); 
+                    btn.innerHTML = `<span>Aceder ao Sistema</span><i class="fas fa-arrow-right"></i>`; 
+                    btn.disabled = false;
+                }
+            } catch (e) { 
+                alert("Erro de comunicação com a base de dados."); 
+                btn.disabled = false; 
+            }
+        }
+
+        function iniciarSessaoEmpresa(username) {
+            usuarioEmpresa = username;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('empresa-dashboard').classList.remove('hidden');
+            document.getElementById('display-user-empresa').innerText = username.toUpperCase();
+            carregarProtocolos();
+        }
+
+        function logoutEmpresa() {
+            localStorage.removeItem('seripm_user_empresa');
+            localStorage.removeItem('seripm_role_empresa');
+            location.reload();
+        }
+
+        async function carregarProtocolos() {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getProtocols',
+                        tab: 'COM FUNCIONÁRIO',
+                        role: localStorage.getItem('seripm_role_empresa') || 'EMPRESA',
+                        username: usuarioEmpresa,
+                        allowedTabs: 'COM FUNCIONÁRIO'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    protocolosGlobais = result.data;
+                    preencherFiltros();
+                    renderizarProtocolos(protocolosGlobais);
+                } else {
+                    document.getElementById('protocolos-container').innerHTML = `
+                        <div class="text-center py-10 text-red-600">
+                            <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
+                            <p>${result.error || 'Erro ao carregar protocolos.'}</p>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('protocolos-container').innerHTML = `
+                    <div class="text-center py-10 text-red-600">
+                        <i class="fas fa-wifi-slash text-3xl mb-2"></i>
+                        <p>Erro de conectividade.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function preencherFiltros() {
+            const bairros = new Set();
+            protocolosGlobais.forEach(p => {
+                if (p.BAIRRO) bairros.add(p.BAIRRO);
+            });
+            
+            let html = '<option value="">-- Todos os Bairros --</option>';
+            Array.from(bairros).sort().forEach(b => {
+                html += `<option value="${b}">${b}</option>`;
+            });
+            document.getElementById('filter-bairro').innerHTML = html;
+        }
+
+        function renderizarProtocolos(protocolos) {
+            const container = document.getElementById('protocolos-container');
+            document.getElementById('total-protocolos').innerText = protocolos.length;
+            
+            if (protocolos.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 bg-white rounded-xl border border-slate-200">
+                        <i class="fas fa-inbox text-4xl text-slate-300 mb-4"></i>
+                        <p class="text-slate-500 text-lg">Nenhum protocolo encontrado.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            protocolos.forEach((p, idx) => {
+                const status = (p.STATUS || 'PENDENTE').toUpperCase();
+                const statusColor = status === 'RESOLVIDO' ? 'emerald' : status === 'ABERTO' ? 'amber' : 'blue';
+                const isSelected = protocolosSelecionados.has(idx);
+                
+                html += `
+                    <div class="protocol-card bg-white rounded-xl shadow-sm border border-slate-200 p-5 ${isSelected ? 'selected' : ''}" onclick="toggleSelecionarProtocolo(${idx}, event)">
+                        <div class="flex items-start justify-between gap-4">
+                            <!-- Checkbox -->
+                            <input type="checkbox" class="checkbox-custom accent-blue-600 mt-1" ${isSelected ? 'checked' : ''} onclick="toggleSelecionarProtocolo(${idx}, event)">
+                            
+                            <!-- Informações Principais -->
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <span class="font-bold text-blue-700 text-lg">${p.PROTOCOLO || 'N/A'}</span>
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-${statusColor}-100 text-${statusColor}-800">${status}</span>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Solicitante</p>
+                                        <p class="font-medium text-slate-800">${p.SOLICITANTE || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Bairro</p>
+                                        <p class="font-medium text-slate-800">${p.BAIRRO || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Endereço</p>
+                                        <p class="font-medium text-slate-800 truncate">${p.ENDERECO || '-'}</p>
+                                    </div>
+                                    <div class="md:col-span-3">
+                                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Tipo de Serviço</p>
+                                        <p class="font-medium text-slate-800">${p.SERVICO || '-'}</p>
+                                    </div>
+                                    <div class="md:col-span-3">
+                                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Detalhes</p>
+                                        <p class="text-slate-700">${p.DETALHES || p.OBSERVACOES || 'Sem detalhes'}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
+                                    <span><i class="fas fa-calendar mr-1"></i> ${p.DATA || '-'}</span>
+                                    <span><i class="fas fa-user-tie mr-1"></i> Atendente: ${p.ATENDENTE || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function filtrarProtocolos() {
+            const bairro = document.getElementById('filter-bairro').value;
+            let filtrados = protocolosGlobais;
+            
+            if (bairro) {
+                filtrados = protocolosGlobais.filter(p => p.BAIRRO === bairro);
+            }
+            
+            renderizarProtocolos(filtrados);
+        }
+
+        function toggleSelecionarProtocolo(idx, event) {
+            event.stopPropagation();
+            if (protocolosSelecionados.has(idx)) {
+                protocolosSelecionados.delete(idx);
+            } else {
+                protocolosSelecionados.add(idx);
+            }
+            document.getElementById('total-selecionados').innerText = protocolosSelecionados.size;
+            renderizarProtocolos(protocolosGlobais);
+        }
+
+        function selecionarTodos() {
+            const bairro = document.getElementById('filter-bairro').value;
+            let filtrados = protocolosGlobais;
+            if (bairro) filtrados = protocolosGlobais.filter(p => p.BAIRRO === bairro);
+            
+            filtrados.forEach((p, idx) => {
+                const realIdx = protocolosGlobais.indexOf(p);
+                protocolosSelecionados.add(realIdx);
+            });
+            
+            document.getElementById('total-selecionados').innerText = protocolosSelecionados.size;
+            renderizarProtocolos(protocolosGlobais);
+        }
+
+        function desselecionar() {
+            protocolosSelecionados.clear();
+            document.getElementById('total-selecionados').innerText = '0';
+            renderizarProtocolos(protocolosGlobais);
+        }
+
+        function obterProtocolosSelecionados() {
+            const selecionados = [];
+            protocolosSelecionados.forEach(idx => {
+                selecionados.push(protocolosGlobais[idx]);
+            });
+            return selecionados;
+        }
+
+        function imprimirSelecionados() {
+            const selecionados = obterProtocolosSelecionados();
+            if (selecionados.length === 0) {
+                alert('Selecione pelo menos um protocolo.');
+                return;
+            }
+            
+            const printWindow = window.open('', '', 'width=800,height=600');
+            const htmlContent = gerarHTMLImpressao(selecionados);
+            
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+
+        function gerarHTMLImpressao(protocolos) {
+            let html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Protocolos - Impressão</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; }
+                        .header-print { text-align: center; padding: 20px 0; border-bottom: 2px solid #1e293b; margin-bottom: 30px; }
+                        .header-print img { height: 50px; margin: 0 10px; }
+                        .logos { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 15px; }
+                        .header-print h1 { font-size: 18px; font-weight: bold; color: #1e293b; margin: 10px 0; }
+                        .page-break { page-break-after: always; margin: 40px 0; }
+                        .protocolo { margin-bottom: 30px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; }
+                        .protocolo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+                        .protocolo-num { font-size: 18px; font-weight: bold; color: #1e40af; }
+                        .status { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+                        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px; }
+                        .field { }
+                        .field-label { font-weight: bold; color: #475569; font-size: 11px; text-transform: uppercase; }
+                        .field-value { color: #1e293b; margin-top: 3px; }
+                        @media print { body { margin: 0; padding: 10mm; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header-print">
+                        <div class="logos">
+                            <img src="images/brasao-marica.png" alt="Brasão">
+                            <img src="images/sec.energ.renov.ilum.publica-marica.png" alt="Secretaria">
+                        </div>
+                        <h1>SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA</h1>
+                        <p>Prefeitura Municipal de Maricá</p>
+                    </div>
+            `;
+            
+            protocolos.forEach((p, idx) => {
+                if (idx > 0 && idx % 3 === 0) html += '<div class="page-break"></div>';
+                
+                const status = (p.STATUS || 'PENDENTE').toUpperCase();
+                const statusClass = status === 'RESOLVIDO' ? 'background-color: #d1fae5; color: #065f46;' :
+                                   status === 'ABERTO' ? 'background-color: #fef3c7; color: #92400e;' :
+                                   'background-color: #dbeafe; color: #1e40af;';
+                
+                html += `
+                    <div class="protocolo">
+                        <div class="protocolo-header">
+                            <div class="protocolo-num">${p.PROTOCOLO || 'N/A'}</div>
+                            <div class="status" style="${statusClass}">${status}</div>
+                        </div>
+                        
+                        <div class="grid">
+                            <div class="field">
+                                <div class="field-label">Solicitante</div>
+                                <div class="field-value">${p.SOLICITANTE || '-'}</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Bairro</div>
+                                <div class="field-value">${p.BAIRRO || '-'}</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Telefone</div>
+                                <div class="field-value">${p.TELEFONE || '-'}</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Data</div>
+                                <div class="field-value">${p.DATA || '-'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="field" style="margin-top: 10px; grid-column: 1 / -1;">
+                            <div class="field-label">Endereço</div>
+                            <div class="field-value">${p.ENDERECO || '-'}</div>
+                        </div>
+                        
+                        <div class="field" style="margin-top: 10px; grid-column: 1 / -1;">
+                            <div class="field-label">Tipo de Serviço</div>
+                            <div class="field-value">${p.SERVICO || '-'}</div>
+                        </div>
+                        
+                        <div class="field" style="margin-top: 10px; grid-column: 1 / -1;">
+                            <div class="field-label">Detalhes/Observações</div>
+                            <div class="field-value">${p.DETALHES || p.OBSERVACOES || '-'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</body></html>';
+            return html;
+        }
+
+        function gerarPDFSelecionados() {
+            const selecionados = obterProtocolosSelecionados();
+            if (selecionados.length === 0) {
+                alert('Selecione pelo menos um protocolo.');
+                return;
+            }
+            
+            const element = document.createElement('div');
+            element.innerHTML = gerarHTMLImpressao(selecionados);
+            
+            const opt = {
+                margin: 10,
+                filename: `Protocolos_${new Date().toLocaleDateString('pt-PT').replace(/\//g, '-')}.pdf`,
+                image: { type: 'png', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function exportarCSVSelecionados() {
+            const selecionados = obterProtocolosSelecionados();
+            if (selecionados.length === 0) {
+                alert('Selecione pelo menos um protocolo.');
+                return;
+            }
+            
+            const colunas = Object.keys(selecionados[0]);
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + colunas.join(";") + "\r\n";
+            
+            selecionados.forEach(row => {
+                let rowArray = colunas.map(k => {
+                    let text = String(row[k] || "").replace(/"/g, '""');
+                    return `"${text}"`;
+                });
+                csvContent += rowArray.join(";") + "\r\n";
+            });
+            
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `Protocolos_${new Date().toLocaleDateString('pt-PT').replace(/\//g, '-')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

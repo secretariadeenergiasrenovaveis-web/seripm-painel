@@ -30,7 +30,21 @@
             body { background: white; }
             .shadow-sm, .shadow-md, .border { border: none !important; shadow: none !important; }
             canvas { max-width: 100% !important; }
+            .header-print { display: block !important; page-break-after: avoid; }
         }
+        
+        .header-print {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid #1e293b;
+            margin-bottom: 20px;
+        }
+        
+        .header-print img { height: 60px; margin: 0 10px; }
+        .header-print .logos { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 15px; }
+        .header-print h1 { font-size: 20px; font-weight: bold; color: #1e293b; margin: 10px 0; }
+        .header-print p { font-size: 12px; color: #64748b; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased overflow-hidden">
@@ -74,9 +88,8 @@
         <!-- Sidebar -->
         <aside class="w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-20">
             <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-                <div class="bg-blue-500 text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-md">
-                    <i class="fas fa-city text-xl"></i>
-                </div>
+                <!-- Brasão de Maricá -->
+                <img src="images/brasao-marica.png" alt="Brasão Maricá" class="h-10 w-10 object-contain">
                 <div>
                     <h1 class="text-xl font-bold tracking-tight">SERIPM</h1>
                     <p class="text-xs text-slate-400 uppercase tracking-wider">Gestão 2026</p>
@@ -113,6 +126,16 @@
 
         <!-- Main Content -->
         <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            
+            <!-- Header de Impressão (visível apenas ao imprimir) -->
+            <div class="header-print">
+                <div class="logos">
+                    <img src="images/brasao-marica.png" alt="Brasão Maricá">
+                    <img src="images/sec.energ.renov.ilum.publica-marica.png" alt="Secretaria">
+                </div>
+                <h1>SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA</h1>
+                <p>Prefeitura Municipal de Maricá</p>
+            </div>
             
             <!-- Top Header -->
             <header class="bg-white shadow-sm z-10 p-4 md:p-6 flex justify-between items-center border-b border-slate-200">
