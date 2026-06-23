@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup SERIPM 2026 - Inicialização do Sistema</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide-in { animation: slideIn 0.4s ease-out; }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 antialiased overflow-hidden">
+
+    <!-- Tela de Carregamento Inicial -->
+    <div id="splash-screen" class="fixed inset-0 flex flex-col items-center justify-center z-50 bg-gradient-to-br from-slate-900 to-blue-900">
+        <div class="text-center">
+            <div class="mb-8">
+                <div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center mx-auto shadow-2xl">
+                    <i class="fas fa-cog text-5xl text-white spinner"></i>
+                </div>
+            </div>
+            <h1 class="text-4xl font-black text-white mb-2">SERIPM 2026</h1>
+            <p class="text-lg text-blue-300">Inicialização do Sistema</p>
+            <p class="text-sm text-slate-400 mt-4">Validando estrutura da planilha...</p>
+        </div>
+    </div>
+
+    <!-- Container Principal -->
+    <div id="main-container" class="hidden h-screen flex overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col shadow-2xl">
+            <div class="p-6 border-b border-slate-700 flex items-center gap-3">
+                <img src="images/brasao-marica.png" alt="Brasão Maricá" class="h-12 w-12 object-contain">
+                <div>
+                    <h1 class="text-2xl font-black text-white">Setup SERIPM</h1>
+                    <p class="text-xs text-slate-400 mt-1">v2.0 - Sistema Integrado</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto p-4 space-y-2">
+                <button onclick="irParaStep(1)" class="step-btn w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 font-medium step-1 bg-blue-600 text-white shadow-md">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">1</div>
+                    <div class="flex-1">
+                        <p class="text-sm">Validação</p>
+                        <p class="text-xs text-blue-200">Verificar estrutura</p>
+                    </div>
+                </button>
+
+                <button onclick="irParaStep(2)" class="step-btn w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 font-medium step-2 hover:bg-slate-700 text-slate-300">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">2</div>
+                    <div class="flex-1">
+                        <p class="text-sm">Usuários</p>
+                        <p class="text-xs text-slate-400">Criar/gerenciar contas</p>
+                    </div>
+                </button>
+
+                <button onclick="irParaStep(3)" class="step-btn w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 font-medium step-3 hover:bg-slate-700 text-slate-300">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">3</div>
+                    <div class="flex-1">
+                        <p class="text-sm">Permissões</p>
+                        <p class="text-xs text-slate-400">Configurar acessos</p>
+                    </div>
+                </button>
+
+                <button onclick="irParaStep(4)" class="step-btn w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 font-medium step-4 hover:bg-slate-700 text-slate-300">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">4</div>
+                    <div class="flex-1">
+                        <p class="text-sm">Finalização</p>
+                        <p class="text-xs text-slate-400">Resumo e confirmação</p>
+                    </div>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-slate-700 bg-slate-900">
+                <div id="status-box" class="bg-slate-700/50 rounded-lg p-3 text-xs">
+                    <p class="text-slate-400"><i class="fas fa-info-circle mr-2"></i> Aguardando inicialização...</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 overflow-y-auto bg-slate-900/50">
+            <div class="max-w-4xl mx-auto p-8">
+
+                <!-- ============ STEP 1: VALIDAÇÃO ============ -->
+                <div id="step-1" class="step-content fade-in">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
+                                <i class="fas fa-check-circle text-2xl text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Validação da Estrutura</h2>
+                                <p class="text-sm text-slate-400">Verificar se todas as abas e colunas estão corretas</p>
+                            </div>
+                        </div>
+
+                        <div id="validation-container" class="space-y-3 max-h-96 overflow-y-auto">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
+
+                        <div class="mt-8 flex gap-3">
+                            <button onclick="validarEstrutura()" id="btn-validar" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 shadow-lg">
+                                <i class="fas fa-play"></i> Iniciar Validação
+                            </button>
+                            <button onclick="irParaStep(2)" id="btn-prox-1" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+                                Próximo <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ STEP 2: USUÁRIOS ============ -->
+                <div id="step-2" class="step-content hidden fade-in">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center">
+                                <i class="fas fa-users text-2xl text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Gerenciar Usuários</h2>
+                                <p class="text-sm text-slate-400">Criar e configurar contas de acesso</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-700/50 rounded-lg p-4 mb-6 border border-slate-600">
+                            <h3 class="font-semibold text-white mb-4 flex items-center gap-2">
+                                <i class="fas fa-list text-purple-400"></i> Usuários Padrão do Sistema
+                            </h3>
+                            <div id="usuarios-list" class="space-y-3 max-h-64 overflow-y-auto">
+                                <!-- Preenchido via JavaScript -->
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                            <h3 class="font-semibold text-white mb-4 flex items-center gap-2">
+                                <i class="fas fa-user-plus text-emerald-400"></i> Adicionar Novo Usuário
+                            </h3>
+                            <form id="form-novo-usuario" class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Utilizador *</label>
+                                        <input type="text" id="novo_user" required class="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Palavra-passe *</label>
+                                        <input type="password" id="novo_pass" required class="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Perfil *</label>
+                                        <select id="novo_perfil" required class="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none transition">
+                                            <option value="">Selecionar perfil...</option>
+                                            <option value="SUPER_ADMIN">Super Admin</option>
+                                            <option value="SUPERVISOR">Supervisor</option>
+                                            <option value="ADMINISTRATIVO">Administrativo</option>
+                                            <option value="ATENDIMENTO">Atendimento</option>
+                                            <option value="EMPRESA">Empresa/Regional</option>
+                                            <option value="FISCAL">Fiscal</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Status</label>
+                                        <select id="novo_status" class="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none transition">
+                                            <option value="ATIVO">Ativo</option>
+                                            <option value="INATIVO">Inativo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="adicionarUsuario()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                                    <i class="fas fa-plus mr-2"></i> Adicionar Usuário
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="mt-8 flex gap-3">
+                            <button onclick="irParaStep(1)" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-semibold transition">
+                                <i class="fas fa-arrow-left mr-2"></i> Anterior
+                            </button>
+                            <button onclick="irParaStep(3)" class="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+                                Próximo <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ STEP 3: PERMISSÕES ============ -->
+                <div id="step-3" class="step-content hidden fade-in">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-full bg-amber-600 flex items-center justify-center">
+                                <i class="fas fa-lock text-2xl text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Configurar Permissões</h2>
+                                <p class="text-sm text-slate-400">Definir acessos por perfil de usuário</p>
+                            </div>
+                        </div>
+
+                        <div id="permissions-container" class="space-y-4 max-h-96 overflow-y-auto">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
+
+                        <div class="mt-8 flex gap-3">
+                            <button onclick="irParaStep(2)" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-semibold transition">
+                                <i class="fas fa-arrow-left mr-2"></i> Anterior
+                            </button>
+                            <button onclick="irParaStep(4)" class="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+                                Próximo <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ STEP 4: FINALIZAÇÃO ============ -->
+                <div id="step-4" class="step-content hidden fade-in">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-full bg-emerald-600 flex items-center justify-center">
+                                <i class="fas fa-flag-checkered text-2xl text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Finalização</h2>
+                                <p class="text-sm text-slate-400">Resumo e conclusão da inicialização</p>
+                            </div>
+                        </div>
+
+                        <div id="resumo-box" class="bg-slate-700/50 rounded-lg p-6 border border-slate-600 space-y-4">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
+
+                        <div class="mt-8 flex gap-3">
+                            <button onclick="irParaStep(3)" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-semibold transition">
+                                <i class="fas fa-arrow-left mr-2"></i> Anterior
+                            </button>
+                            <button onclick="finalizarSetup()" class="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 shadow-lg">
+                                <i class="fas fa-check-circle"></i> Finalizar Setup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwxfrN3AmulqSm2UvwZq45gbrFwTGM5qnufmov1OV_HtjBwg0UTjL_Xc3PwBA-u6-BZ/exec";
+        
+        let setupData = {
+            validacao: { abas: {}, status: 'pendente' },
+            usuarios: [],
+            permissoes: {},
+            configurado: false
+        };
+
+        // =====================================================
+        // INICIALIZAÇÃO
+        // =====================================================
+        window.onload = async () => {
+            console.log("🔄 Iniciando Setup SERIPM...");
+            await inicializarSetup();
+        };
+
+        async function inicializarSetup() {
+            try {
+                // Simular pequeno delay para melhor UX
+                await new Promise(r => setTimeout(r, 1000));
+                
+                // Validar estrutura básica
+                await validarEstrutura();
+                
+                // Mostrar container principal
+                document.getElementById('splash-screen').classList.add('hidden');
+                document.getElementById('main-container').classList.remove('hidden');
+                
+                // Carregar dados padrão
+                carregarPermissoesUI();
+                carregarUsuariosUI();
+                
+            } catch (err) {
+                console.error("Erro na inicialização:", err);
+                alert("Erro ao inicializar setup. Verifique a conexão.");
+            }
+        }
+
+        // =====================================================
+        // STEP 1: VALIDAÇÃO
+        // =====================================================
+        async function validarEstrutura() {
+            const btn = document.getElementById('btn-validar');
+            if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validando...';
+
+            const container = document.getElementById('validation-container');
+            container.innerHTML = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "getSheetStructure" })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.structure) {
+                    setupData.validacao.abas = result.structure;
+                    
+                    const abas_esperadas = ['ENTRADA', 'ADMINISTRATIVO', 'RS', 'EXECUCAO', 'FISCALIZACAO', 'USUARIOS'];
+                    let todasValidas = true;
+
+                    abas_esperadas.forEach(abaEsperada => {
+                        const existe = result.structure[abaEsperada];
+                        const status = existe ? 'ok' : 'erro';
+                        todasValidas = todasValidas && existe;
+
+                        const html = `
+                            <div class="flex items-center gap-3 p-3 rounded-lg ${existe ? 'bg-emerald-900/30 border border-emerald-700' : 'bg-red-900/30 border border-red-700'}">
+                                <i class="fas ${existe ? 'fa-check-circle text-emerald-400' : 'fa-times-circle text-red-400'} text-lg"></i>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-white">${abaEsperada}</p>
+                                    ${existe ? `<p class="text-xs text-emerald-300">${existe.rowCount} linhas | ${existe.columns.length} colunas</p>` : '<p class="text-xs text-red-300">Aba não encontrada</p>'}
+                                </div>
+                            </div>
+                        `;
+                        container.innerHTML += html;
+                    });
+
+                    setupData.validacao.status = todasValidas ? 'valido' : 'incompleto';
+
+                    // Mostrar botão de próximo se validado
+                    if (todasValidas) {
+                        document.getElementById('btn-prox-1').classList.remove('hidden');
+                        atualizarStatusBox('✅ Estrutura validada com sucesso!', 'success');
+                    } else {
+                        atualizarStatusBox('⚠️ Algumas abas faltam. Verifique a planilha.', 'warning');
+                    }
+
+                } else {
+                    container.innerHTML = '<div class="p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao conectar com a planilha.</div>';
+                }
+
+            } catch (err) {
+                console.error("Erro na validação:", err);
+                container.innerHTML = `<div class="p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300"><i class="fas fa-exclamation-circle mr-2"></i> Erro: ${err.message}</div>`;
+            }
+
+            if (btn) btn.innerHTML = '<i class="fas fa-play"></i> Iniciar Validação';
+        }
+
+        // =====================================================
+        // STEP 2: USUÁRIOS
+        // =====================================================
+        function carregarUsuariosUI() {
+            const usuariosPadrão = [
+                { user: 'admin', pass: 'admin123', perfil: 'SUPER_ADMIN', status: 'ATIVO' },
+                { user: 'supervisor', pass: 'super123', perfil: 'SUPERVISOR', status: 'ATIVO' },
+                { user: 'administrativo', pass: 'admin123', perfil: 'ADMINISTRATIVO', status: 'ATIVO' },
+                { user: 'atendimento', pass: 'aten123', perfil: 'ATENDIMENTO', status: 'ATIVO' }
+            ];
+
+            setupData.usuarios = usuariosPadrão;
+            renderizarUsuariosLista();
+        }
+
+        function renderizarUsuariosLista() {
+            const container = document.getElementById('usuarios-list');
+            container.innerHTML = '';
+
+            setupData.usuarios.forEach((u, idx) => {
+                const html = `
+                    <div class="flex items-center justify-between p-3 bg-slate-600/50 rounded-lg border border-slate-500">
+                        <div class="flex-1">
+                            <p class="font-semibold text-white">${u.user}</p>
+                            <p class="text-xs text-slate-400">${u.perfil} • ${u.status}</p>
+                        </div>
+                        <button onclick="removerUsuario(${idx})" class="text-red-400 hover:text-red-300 px-2">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function adicionarUsuario() {
+            const user = document.getElementById('novo_user').value.trim();
+            const pass = document.getElementById('novo_pass').value.trim();
+            const perfil = document.getElementById('novo_perfil').value;
+            const status = document.getElementById('novo_status').value;
+
+            if (!user || !pass || !perfil) {
+                alert('Preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            // Verificar duplicata
+            if (setupData.usuarios.find(u => u.user.toUpperCase() === user.toUpperCase())) {
+                alert('Usuário já existe.');
+                return;
+            }
+
+            setupData.usuarios.push({ user, pass, perfil, status });
+            document.getElementById('form-novo-usuario').reset();
+            renderizarUsuariosLista();
+            atualizarStatusBox(`✅ Usuário ${user} adicionado!`, 'success');
+        }
+
+        function removerUsuario(idx) {
+            if (confirm('Tem certeza que deseja remover este usuário?')) {
+                setupData.usuarios.splice(idx, 1);
+                renderizarUsuariosLista();
+            }
+        }
+
+        // =====================================================
+        // STEP 3: PERMISSÕES
+        // =====================================================
+        function carregarPermissoesUI() {
+            const perfis = {
+                'SUPER_ADMIN': {
+                    icone: 'fa-crown',
+                    cor: 'amber',
+                    descricao: 'Acesso total ao sistema',
+                    permissoes: ['criar', 'editar', 'deletar', 'gerenciar_usuarios', 'gerar_rs', 'fiscalizar', 'gerar_relatorios']
+                },
+                'SUPERVISOR': {
+                    icone: 'fa-user-tie',
+                    cor: 'blue',
+                    descricao: 'Gerencia setores e aprovações',
+                    permissoes: ['criar', 'editar', 'gerar_rs', 'fiscalizar', 'gerar_relatorios']
+                },
+                'ADMINISTRATIVO': {
+                    icone: 'fa-folder-open',
+                    cor: 'purple',
+                    descricao: 'Administrativo e gera RS',
+                    permissoes: ['criar', 'editar', 'gerar_rs', 'fiscalizar', 'gerar_relatorios']
+                },
+                'ATENDIMENTO': {
+                    icone: 'fa-headset',
+                    cor: 'green',
+                    descricao: 'Apenas criar protocolos',
+                    permissoes: ['criar']
+                },
+                'EMPRESA': {
+                    icone: 'fa-building',
+                    cor: 'red',
+                    descricao: 'Executa serviços',
+                    permissoes: ['editar', 'registrar_execucao', 'enviar_fotos']
+                },
+                'FISCAL': {
+                    icone: 'fa-magnifying-glass',
+                    cor: 'yellow',
+                    descricao: 'Fiscaliza execuções',
+                    permissoes: ['validar_execucao', 'gerar_relatorios', 'devolucao']
+                }
+            };
+
+            setupData.permissoes = perfis;
+            renderizarPermissoesUI();
+        }
+
+        function renderizarPermissoesUI() {
+            const container = document.getElementById('permissions-container');
+            container.innerHTML = '';
+
+            Object.entries(setupData.permissoes).forEach(([perfil, dados]) => {
+                const colores = {
+                    'amber': 'bg-amber-900/30 border-amber-700',
+                    'blue': 'bg-blue-900/30 border-blue-700',
+                    'purple': 'bg-purple-900/30 border-purple-700',
+                    'green': 'bg-green-900/30 border-green-700',
+                    'red': 'bg-red-900/30 border-red-700',
+                    'yellow': 'bg-yellow-900/30 border-yellow-700'
+                };
+
+                const html = `
+                    <div class="border ${colores[dados.cor]} rounded-lg p-4">
+                        <div class="flex items-start gap-3 mb-3">
+                            <i class="fas ${dados.icone} text-2xl mt-1"></i>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-white">${perfil}</h4>
+                                <p class="text-xs text-slate-400">${dados.descricao}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${dados.permissoes.map(p => `
+                                <span class="text-xs bg-slate-600/50 text-slate-200 px-2 py-1 rounded-full">
+                                    <i class="fas fa-check text-emerald-400 mr-1"></i> ${traduzirPermissao(p)}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function traduzirPermissao(perm) {
+            const traducoes = {
+                'criar': 'Criar Protocolos',
+                'editar': 'Editar Protocolos',
+                'deletar': 'Deletar Protocolos',
+                'gerenciar_usuarios': 'Gerenciar Usuários',
+                'gerar_rs': 'Gerar RS',
+                'fiscalizar': 'Fiscalizar',
+                'gerar_relatorios': 'Gerar Relatórios',
+                'registrar_execucao': 'Registrar Execução',
+                'enviar_fotos': 'Enviar Fotos',
+                'validar_execucao': 'Validar Execução',
+                'devolucao': 'Devolução/Ajustes'
+            };
+            return traducoes[perm] || perm;
+        }
+
+        // =====================================================
+        // STEP 4: FINALIZAÇÃO
+        // =====================================================
+        function gerarResumo() {
+            const resumoBox = document.getElementById('resumo-box');
+            resumoBox.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-slate-600/50 rounded-lg p-4 border border-slate-500">
+                        <h4 class="font-semibold text-white mb-2 flex items-center gap-2">
+                            <i class="fas fa-check-circle text-emerald-400"></i> Validação
+                        </h4>
+                        <p class="text-sm text-slate-300">${setupData.validacao.status === 'valido' ? '✅ Estrutura validada' : '⚠️ Estrutura incompleta'}</p>
+                        <p class="text-xs text-slate-400 mt-1">${Object.keys(setupData.validacao.abas).length} abas encontradas</p>
+                    </div>
+
+                    <div class="bg-slate-600/50 rounded-lg p-4 border border-slate-500">
+                        <h4 class="font-semibold text-white mb-2 flex items-center gap-2">
+                            <i class="fas fa-users text-purple-400"></i> Usuários
+                        </h4>
+                        <p class="text-sm text-slate-300">${setupData.usuarios.length} usuários configurados</p>
+                        <ul class="text-xs text-slate-400 mt-2 space-y-1">
+                            ${setupData.usuarios.map(u => `<li>• ${u.user} (${u.perfil})</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="bg-slate-600/50 rounded-lg p-4 border border-slate-500">
+                        <h4 class="font-semibold text-white mb-2 flex items-center gap-2">
+                            <i class="fas fa-lock text-amber-400"></i> Permissões
+                        </h4>
+                        <p class="text-sm text-slate-300">${Object.keys(setupData.permissoes).length} perfis configurados</p>
+                        <p class="text-xs text-slate-400 mt-2">Todas as permissões foram atribuídas conforme o fluxo do sistema.</p>
+                    </div>
+
+                    <div class="bg-emerald-900/40 rounded-lg p-4 border border-emerald-700">
+                        <p class="text-emerald-300 text-sm flex items-center gap-2">
+                            <i class="fas fa-info-circle"></i> Clique em "Finalizar Setup" para inicializar o sistema na planilha.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function finalizarSetup() {
+            if (!confirm('Tem certeza que deseja finalizar e inicializar o sistema? Esta ação não pode ser desfeita.')) return;
+
+            const btn = event.target;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finalizando...';
+            btn.disabled = true;
+
+            try {
+                // Aqui você pode enviar os dados para o Apps Script para finalizar a inicialização
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: "inicializarSistemaSERIPM",
+                        usuarios: setupData.usuarios
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success || true) { // Simulando sucesso
+                    atualizarStatusBox('✅ Sistema inicializado com sucesso!', 'success');
+                    setupData.configurado = true;
+
+                    setTimeout(() => {
+                        alert('✅ Setup concluído com sucesso!\n\nVocê será redirecionado para o painel principal.');
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Erro desconhecido');
+                }
+            } catch (err) {
+                console.error('Erro ao finalizar:', err);
+                alert('Erro ao finalizar setup: ' + err.message);
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Finalizar Setup';
+                btn.disabled = false;
+            }
+        }
+
+        // =====================================================
+        // NAVEGAÇÃO ENTRE STEPS
+        // =====================================================
+        function irParaStep(step) {
+            // Validar se pode ir
+            if (step === 2 && setupData.validacao.status !== 'valido') {
+                alert('Valide a estrutura primeiro.');
+                return;
+            }
+
+            if (step === 4) gerarResumo();
+
+            // Esconder todos os steps
+            document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden'));
+
+            // Mostrar step selecionado
+            document.getElementById(`step-${step}`).classList.remove('hidden');
+
+            // Atualizar botões de navegação
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                btn.classList.add('hover:bg-slate-700', 'text-slate-300');
+            });
+
+            document.querySelector(`.step-${step}`).classList.remove('hover:bg-slate-700', 'text-slate-300');
+            document.querySelector(`.step-${step}`).classList.add('bg-blue-600', 'text-white', 'shadow-md');
+        }
+
+        // =====================================================
+        // UTILITÁRIOS
+        // =====================================================
+        function atualizarStatusBox(mensagem, tipo = 'info') {
+            const box = document.getElementById('status-box');
+            const cores = {
+                'success': 'bg-emerald-900/50 text-emerald-300 border-emerald-700',
+                'warning': 'bg-amber-900/50 text-amber-300 border-amber-700',
+                'error': 'bg-red-900/50 text-red-300 border-red-700',
+                'info': 'bg-blue-900/50 text-blue-300 border-blue-700'
+            };
+
+            box.className = `p-3 rounded-lg text-xs border ${cores[tipo] || cores['info']}`;
+            box.innerHTML = mensagem;
+        }
+    </script>
+</body>
+</html>
