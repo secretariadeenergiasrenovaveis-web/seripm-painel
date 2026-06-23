@@ -184,6 +184,19 @@
                     <!-- KPI Cards (Resumo da Tabela) -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-container"></div>
 
+                    <!-- ✅ NOVO: Botões de Ação para Protocolo Selecionados -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex gap-3">
+                        <button onclick="imprimirProtocolosSelecionados()" class="bg-slate-800 text-white px-5 py-2 rounded-lg hover:bg-slate-900 transition shadow-md flex items-center gap-2 font-medium">
+                            <i class="fas fa-print"></i> Imprimir Selecionados
+                        </button>
+                        <button onclick="gerarPDFProtocolosSelecionados()" class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition shadow-md flex items-center gap-2 font-medium">
+                            <i class="fas fa-file-pdf"></i> Gerar PDF Selecionados
+                        </button>
+                        <button onclick="carregarCardsStatus()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition shadow-md flex items-center gap-2 font-medium ml-auto">
+                            <i class="fas fa-sync-alt"></i> Atualizar Cards
+                        </button>
+                    </div>
+
                     <!-- Tabela e Ferramentas -->
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
                         <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50 rounded-t-xl">
@@ -488,6 +501,7 @@
                         renderizarDashboard(currentData);
                     } else {
                         gerarKPIs(currentData);
+                        carregarCardsStatus(); // ✅ NOVO: Carregar cards de status
                         renderizarTabela(currentData, document.getElementById('content-area'));
                         if(document.getElementById('search-input').value) filtrarTabela();
                     }
@@ -653,12 +667,18 @@
             
             let html = `<table class="w-full text-sm text-left" id="data-table"><thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200 sticky top-0 shadow-sm z-10"><tr>`;
             
+            // ✅ NOVO: Coluna de checkbox
+            html += `<th class="px-4 py-4 w-10"><input type="checkbox" id="select-all-protocols" onchange="toggleSelectAllProtocols()" class="w-4 h-4 cursor-pointer"></th>`;
+            
             colunasExibidas.forEach(k => html += `<th class="px-6 py-4">${k}</th>`);
             html += `<th class="px-6 py-4 text-center">Status</th>`;
             html += `<th class="px-6 py-4 text-right">Ações</th></tr></thead><tbody class="divide-y divide-slate-100 text-slate-700">`;
             
             dados.forEach((row, index) => {
                 html += `<tr class="hover:bg-blue-50/50 transition cursor-pointer">`;
+                
+                // ✅ NOVO: Checkbox para cada protocolo
+                html += `<td class="px-4 py-4"><input type="checkbox" class="protocol-checkbox" data-index="${index}" data-protocol="${row.PROTOCOLO || ''}" onchange="atualizarContadorSelecionados()" class="w-4 h-4 cursor-pointer"></td>`;
                 
                 colunasExibidas.forEach(k => {
                     let valor = row[k] || '-';
@@ -884,6 +904,233 @@
                     btn.classList.remove('bg-emerald-300');
                 }, 2000);
             });
+        }
+
+        // ==========================================
+        // ✅ NOVO: FUNÇÕES PARA CHECKBOXES E PRINT/PDF
+        // ==========================================
+        function toggleSelectAllProtocols() {
+            const selectAllCheckbox = document.getElementById('select-all-protocols');
+            const checkboxes = document.querySelectorAll('.protocol-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+            atualizarContadorSelecionados();
+        }
+
+        function atualizarContadorSelecionados() {
+            const selecionados = document.querySelectorAll('.protocol-checkbox:checked').length;
+            const totalBadge = document.getElementById('total-badge');
+            const selectAllCheckbox = document.getElementById('select-all-protocols');
+            const allCheckboxes = document.querySelectorAll('.protocol-checkbox');
+            
+            // Atualiza o badge com o contador de selecionados
+            if (selecionados > 0) {
+                totalBadge.innerHTML = `${selecionados} selecionados de ${allCheckboxes.length}`;
+                totalBadge.classList.remove('bg-blue-100', 'text-blue-700');
+                totalBadge.classList.add('bg-emerald-100', 'text-emerald-700');
+            } else {
+                totalBadge.innerHTML = `${allCheckboxes.length}`;
+                totalBadge.classList.add('bg-blue-100', 'text-blue-700');
+                totalBadge.classList.remove('bg-emerald-100', 'text-emerald-700');
+            }
+            
+            // Marca o checkbox "Selecionar Tudo" se todos estão selecionados
+            selectAllCheckbox.checked = selecionados === allCheckboxes.length && allCheckboxes.length > 0;
+        }
+
+        // ✅ NOVO: IMPRESSÃO COM CABEÇALHO OFICIAL
+        function imprimirProtocolosSelecionados() {
+            const selecionados = document.querySelectorAll('.protocol-checkbox:checked');
+            if (selecionados.length === 0) {
+                alert('Selecione ao menos um protocolo para imprimir.');
+                return;
+            }
+            
+            let html = '<html><head><meta charset="UTF-8"><title>Protocolos - SERIPM</title><style>';
+            html += 'body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; background: white; }';
+            html += '.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }';
+            html += '.header-logo { width: 80px; height: 80px; }';
+            html += '.header-center { flex: 1; text-align: center; }';
+            html += '.header-center h2 { margin: 0; font-size: 14px; font-weight: bold; }';
+            html += '.header-center p { margin: 2px 0; font-size: 12px; }';
+            html += '.header-right { width: 80px; height: 80px; }';
+            html += 'table { width: 100%; border-collapse: collapse; margin-top: 20px; }';
+            html += 'th, td { border: 1px solid #333; padding: 10px; text-align: left; font-size: 11px; }';
+            html += 'th { background-color: #f0f0f0; font-weight: bold; }';
+            html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
+            html += '@media print { body { margin: 0; padding: 10px; } .no-print { display: none; } }';
+            html += '</style></head><body>';
+            
+            // CABEÇALHO OFICIAL
+            html += '<div class="header">';
+            html += '<div class="header-logo"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/brasao-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '<div class="header-center">';
+            html += '<h2>ESTADO DO RIO DE JANEIRO</h2>';
+            html += '<p>PREFEITURA MUNICIPAL DE MARICÁ</p>';
+            html += '<p>SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA</p>';
+            html += '<p><strong>PÚBLICA - SERIP</strong></p>';
+            html += '</div>';
+            html += '<div class="header-right"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/sec.energ.renov.ilum.publica-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '</div>';
+            
+            html += '<h3 style="text-align: center;">PROTOCOLOS - ' + currentTab.toUpperCase() + '</h3>';
+            html += '<table>';
+            html += '<tr><th>Data</th><th>Protocolo</th><th>Atendente</th><th>Solicitante</th><th>Bairro</th><th>Status</th></tr>';
+            
+            selecionados.forEach(checkbox => {
+                const index = parseInt(checkbox.getAttribute('data-index'));
+                const row = currentData[index];
+                if (row) {
+                    html += '<tr>';
+                    html += '<td>' + (row.DATA || '') + '</td>';
+                    html += '<td>' + (row.PROTOCOLO || '') + '</td>';
+                    html += '<td>' + (row.ATENDENTE || '') + '</td>';
+                    html += '<td>' + (row.SOLICITANTE || '') + '</td>';
+                    html += '<td>' + (row.BAIRRO || '') + '</td>';
+                    html += '<td>' + (row.STATUS || '') + '</td>';
+                    html += '</tr>';
+                }
+            });
+            
+            html += '</table>';
+            html += '<p style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">Documento gerado em: ' + new Date().toLocaleString('pt-BR') + '</p>';
+            html += '</body></html>';
+            
+            const printWindow = window.open('', '', 'width=900,height=600');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+
+        // ✅ NOVO: PDF COM CABEÇALHO OFICIAL
+        function gerarPDFProtocolosSelecionados() {
+            const selecionados = document.querySelectorAll('.protocol-checkbox:checked');
+            if (selecionados.length === 0) {
+                alert('Selecione ao menos um protocolo para gerar PDF.');
+                return;
+            }
+            
+            let html = '<html><head><meta charset="UTF-8"><title>Protocolos - SERIPM</title><style>';
+            html += 'body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; background: white; }';
+            html += '.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }';
+            html += '.header-logo { width: 80px; height: 80px; }';
+            html += '.header-center { flex: 1; text-align: center; }';
+            html += '.header-center h2 { margin: 0; font-size: 14px; font-weight: bold; }';
+            html += '.header-center p { margin: 2px 0; font-size: 12px; }';
+            html += '.header-right { width: 80px; height: 80px; }';
+            html += 'table { width: 100%; border-collapse: collapse; margin-top: 20px; }';
+            html += 'th, td { border: 1px solid #333; padding: 10px; text-align: left; font-size: 11px; }';
+            html += 'th { background-color: #f0f0f0; font-weight: bold; }';
+            html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
+            html += '@media print { body { margin: 0; padding: 10px; } .no-print { display: none; } }';
+            html += '</style></head><body>';
+            
+            // CABEÇALHO OFICIAL
+            html += '<div class="header">';
+            html += '<div class="header-logo"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/brasao-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '<div class="header-center">';
+            html += '<h2>ESTADO DO RIO DE JANEIRO</h2>';
+            html += '<p>PREFEITURA MUNICIPAL DE MARICÁ</p>';
+            html += '<p>SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA</p>';
+            html += '<p><strong>PÚBLICA - SERIP</strong></p>';
+            html += '</div>';
+            html += '<div class="header-right"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/sec.energ.renov.ilum.publica-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '</div>';
+            
+            html += '<h3 style="text-align: center;">PROTOCOLOS - ' + currentTab.toUpperCase() + '</h3>';
+            html += '<table>';
+            html += '<tr><th>Data</th><th>Protocolo</th><th>Atendente</th><th>Solicitante</th><th>Bairro</th><th>Status</th></tr>';
+            
+            selecionados.forEach(checkbox => {
+                const index = parseInt(checkbox.getAttribute('data-index'));
+                const row = currentData[index];
+                if (row) {
+                    html += '<tr>';
+                    html += '<td>' + (row.DATA || '') + '</td>';
+                    html += '<td>' + (row.PROTOCOLO || '') + '</td>';
+                    html += '<td>' + (row.ATENDENTE || '') + '</td>';
+                    html += '<td>' + (row.SOLICITANTE || '') + '</td>';
+                    html += '<td>' + (row.BAIRRO || '') + '</td>';
+                    html += '<td>' + (row.STATUS || '') + '</td>';
+                    html += '</tr>';
+                }
+            });
+            
+            html += '</table>';
+            html += '<p style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">Documento gerado em: ' + new Date().toLocaleString('pt-BR') + '</p>';
+            html += '</body></html>';
+            
+            const printWindow = window.open('', '', 'width=900,height=600');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+
+        // ✅ NOVO: Carregar cards de status
+        async function carregarCardsStatus() {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getStatusCounts',
+                        role: localStorage.getItem('seripm_role'),
+                        username: localStorage.getItem('seripm_user')
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.counts) {
+                    const counts = result.counts;
+                    const container = document.getElementById('kpi-container');
+                    
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Total de Protocolos</p>
+                                <p class="text-3xl font-bold text-slate-800">${counts.TOTAL || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-amber-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Abertos</p>
+                                <p class="text-3xl font-bold text-amber-700">${counts.ABERTO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-red-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Atrasados (15+ dias)</p>
+                                <p class="text-3xl font-bold text-red-700">${counts.ATRASADO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-blue-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Com a Empresa</p>
+                                <p class="text-3xl font-bold text-blue-700">${counts["COM EMPRESA"] || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-emerald-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Resolvidos</p>
+                                <p class="text-3xl font-bold text-emerald-700">${counts.RESOLVIDO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-slate-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Cancelados</p>
+                                <p class="text-3xl font-bold text-slate-700">${counts.CANCELADO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-violet-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Pendentes</p>
+                                <p class="text-3xl font-bold text-violet-700">${counts.PENDENTE || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-pink-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Garantia</p>
+                                <p class="text-3xl font-bold text-pink-700">${counts.GARANTIA || 0}</p>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (e) {
+                console.error('Erro ao carregar cards de status:', e);
+            }
         }
     </script>
 </body>
