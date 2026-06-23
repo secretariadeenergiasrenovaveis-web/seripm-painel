@@ -456,7 +456,7 @@
                                 <p class="text-lg font-bold text-orange-400">${p.PROTOCOLO || 'N/A'}</p>
                                 <span class="px-2 py-1 rounded-full bg-slate-700 text-slate-300 text-xs font-semibold">${p.STATUS || 'ABERTO'}</span>
                             </div>
-                            <p class="text-sm text-slate-400 truncate">📍 ${p.ENDERECO || 'N/A'}</p>
+                            <p class="text-sm text-slate-400 truncate">📍 ${p['ENDEREÇO DO PROBLEMA'] || 'N/A'}</p>
                             <p class="text-sm text-slate-400">👤 ${p.SOLICITANTE || 'N/A'}</p>
                         </div>
                     </div>
@@ -482,24 +482,28 @@
         // ABRIR DETALHES
         function abrirDetalhes(protocolo) {
             protocoloAtual = protocolo;
+            console.log('🔓 Abrindo modal com protocolo:', protocolo.PROTOCOLO);
+            console.log('📋 Dados disponíveis:', Object.keys(protocolo));
+            
             document.getElementById('modal_protocolo').textContent = protocolo.PROTOCOLO;
             document.getElementById('modal_status').textContent = protocolo.STATUS || 'ABERTO';
             document.getElementById('modal_data').textContent = protocolo.DATA || 'N/A';
             document.getElementById('modal_solicitante').textContent = protocolo.SOLICITANTE || 'N/A';
-            document.getElementById('modal_endereco').textContent = protocolo.ENDERECO || 'N/A';
+            document.getElementById('modal_endereco').textContent = protocolo['ENDEREÇO DO PROBLEMA'] || 'N/A';
             document.getElementById('modal_bairro').textContent = protocolo.BAIRRO || 'N/A';
-            document.getElementById('modal_referencia').textContent = protocolo.REFERENCIA || 'N/A';
-            document.getElementById('modal_cpf').textContent = protocolo.CPF || 'N/A';
-            document.getElementById('modal_tipo_servico').textContent = protocolo.SERVICO || 'N/A';
-            document.getElementById('modal_detalhes').textContent = protocolo.DETALHES || 'Nenhum detalhe adicional';
-            document.getElementById('modal_observacoes').textContent = protocolo.OBSERVACOES || 'Nenhuma observação';
+            document.getElementById('modal_referencia').textContent = protocolo['PONTO DE REFERÊNCIA'] || 'N/A';
+            document.getElementById('modal_cpf').textContent = protocolo['CPF DO SOLICITANTE'] || 'N/A';
+            document.getElementById('modal_tipo_servico').textContent = protocolo.SOLICITAÇÃO || 'N/A';
+            document.getElementById('modal_detalhes').textContent = protocolo['DETALHES DO SERVIÇO'] || 'Nenhum detalhe adicional';
+            document.getElementById('modal_observacoes').textContent = protocolo.OBSERVAÇÃO || 'Nenhuma observação';
             
-            const tel = (protocolo.TELEFONE || '').replace(/\D/g, '');
+            const tel = (protocolo['TELEFONE DO SOLICITANTE'] || '').replace(/\D/g, '');
             const telLink = document.getElementById('modal_telefone_link');
             telLink.href = `tel:${tel}`;
-            telLink.textContent = protocolo.TELEFONE || 'N/A';
+            telLink.textContent = protocolo['TELEFONE DO SOLICITANTE'] || 'N/A';
             
             document.getElementById('modalDetalhes').classList.remove('hidden');
+            console.log('✅ Modal aberto com sucesso');
         }
 
         // FECHAR MODAL DETALHES
