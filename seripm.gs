@@ -742,15 +742,17 @@ function getFiscalizations(p) {
  * Busca dados sempre da aba ENTRADA para garantir precisão
  */
 function getStatusCounts(p) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ENTRADA");
-  if (!sheet) return responseJson({ success: false, error: "Aba ENTRADA não encontrada" });
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetEntrada = ss.getSheetByName("ENTRADA");
+  const sheetAtrasado = ss.getSheetByName("URGENTE/ATRASADO");
   
-  const data = sheet.getDataRange().getValues();
-  if (data.length < 2) return responseJson({ success: true, counts: {} });
+  if (!sheetEntrada) return responseJson({ success: false, error: "Aba ENTRADA não encontrada" });
+  
+  const dataEntrada = sheetEntrada.getDataRange().getValues();
+  if (dataEntrada.length < 2) return responseJson({ success: true, counts: {} });
 
-  const headers = data[0];
+  const headers = dataEntrada[0];
   const idxStatus = headers.indexOf("STATUS");
-  const idxData = headers.indexOf("DATA");
   
   if (idxStatus < 0) return responseJson({ success: false, error: "Coluna STATUS não encontrada" });
 
@@ -765,11 +767,16 @@ function getStatusCounts(p) {
     "GARANTIA": 0
   };
 
-  const agora = new Date();
-  const limiteAtrasado = new Date(agora.getTime() - 15 * 24 * 60 * 60 * 1000);
+  // Contar ATRASADO da aba "URGENTE/ATRASADO" (se existir)
+  if (sheetAtrasado) {
+    const dataAtrasado = sheetAtrasado.getDataRange().getValues();
+    // Conta todas as linhas de dados (menos o cabeçalho)
+    counts["ATRASADO"] = Math.max(0, dataAtrasado.length - 1);
+  }
 
-  for (let i = 1; i < data.length; i++) {
-    const status = (data[i][idxStatus] || "").toString().toUpperCase().trim();
+  // Contar os outros status da aba ENTRADA
+  for (let i = 1; i < dataEntrada.length; i++) {
+    const status = (dataEntrada[i][idxStatus] || "").toString().toUpperCase().trim();
     
     if (!status) continue;
     
@@ -777,18 +784,14 @@ function getStatusCounts(p) {
     
     if (status === "ABERTO" || status === "PENDENTE") {
       counts["ABERTO"]++;
-      
-      if (idxData >= 0 && data[i][idxData] instanceof Date) {
-        if (data[i][idxData] < limiteAtrasado) {
-          counts["ATRASADO"]++;
-        }
-      }
     } else if (status === "COM EMPRESA" || status === "ENCAMINHADO AO FUNCIONÁRIO") {
       counts["COM EMPRESA"]++;
     } else if (status === "RESOLVIDO" || status === "CONCLUÍDO") {
       counts["RESOLVIDO"]++;
     } else if (status === "CANCELADO") {
       counts["CANCELADO"]++;
+    } else if (status === "PENDENTE") {
+      counts["PENDENTE"]++;
     } else if (status === "GARANTIA") {
       counts["GARANTIA"]++;
     }

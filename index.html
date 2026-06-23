@@ -192,7 +192,7 @@
                         <button onclick="gerarPDFProtocolosSelecionados()" class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition shadow-md flex items-center gap-2 font-medium">
                             <i class="fas fa-file-pdf"></i> Gerar PDF Selecionados
                         </button>
-                        <button onclick="carregarCardsStatus()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition shadow-md flex items-center gap-2 font-medium ml-auto">
+                        <button onclick="carregarCardsStatusAPI()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition shadow-md flex items-center gap-2 font-medium ml-auto">
                             <i class="fas fa-sync-alt"></i> Atualizar Cards
                         </button>
                     </div>
@@ -501,8 +501,8 @@
                     if (isDashboard) {
                         renderizarDashboard(currentData);
                     } else {
-                        // ✅ CORRIGIDO: Usar gerarCardsStatus() que processa dados locais sem fazer nova API call
-                        gerarCardsStatus(currentData);
+                        gerarKPIs(currentData);
+                        carregarCardsStatusAPI(); // ✅ Buscar status reais do backend
                         renderizarTabela(currentData, document.getElementById('content-area'));
                         if(document.getElementById('search-input').value) filtrarTabela();
                     }
@@ -660,83 +660,64 @@
             `;
         }
 
-        // ✅ NOVO: Função que gera os 8 status cards usando dados locais (sem fazer nova API call)
-        function gerarCardsStatus(dados) {
-            const container = document.getElementById('kpi-container');
-            if (!dados || dados.length === 0) return;
-
-            // Contar os 8 status
-            let counts = {
-                TOTAL: dados.length,
-                ABERTO: 0,
-                ATRASADO: 0,
-                'COM EMPRESA': 0,
-                RESOLVIDO: 0,
-                CANCELADO: 0,
-                PENDENTE: 0,
-                GARANTIA: 0
-            };
-
-            const agora = new Date();
-            const limiteAtraso = 15 * 24 * 60 * 60 * 1000; // 15 dias em ms
-
-            dados.forEach(row => {
-                const status = (row.STATUS || '').toUpperCase().trim();
+        // ✅ NOVO: Função que busca os 8 status cards do backend (aba URGENTE/ATRASADO)
+        async function carregarCardsStatusAPI() {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getStatusCounts',
+                        role: localStorage.getItem('seripm_role'),
+                        username: localStorage.getItem('seripm_user')
+                    })
+                });
                 
-                // Contar status principal
-                if (status === 'ABERTO') counts.ABERTO++;
-                else if (status === 'RESOLVIDO' || status === 'CONCLUÍDO') counts.RESOLVIDO++;
-                else if (status === 'CANCELADO') counts.CANCELADO++;
-                else if (status === 'PENDENTE') counts.PENDENTE++;
-                else if (status === 'ENCAMINHADO AO FUNCIONÁRIO') counts['COM EMPRESA']++;
-                else if (status === 'GARANTIA') counts.GARANTIA++;
-
-                // Detectar atrasado (aberto por mais de 15 dias)
-                if ((status === 'ABERTO' || status === 'PENDENTE') && row.DATA) {
-                    const dataStr = String(row.DATA).split(' ')[0]; // DD/MM/YYYY
-                    const [dia, mes, ano] = dataStr.split('/');
-                    const dataProtocolo = new Date(ano, mes - 1, dia);
-                    if (agora - dataProtocolo > limiteAtraso) {
-                        counts.ATRASADO++;
+                const result = await response.json();
+                
+                if (result.success && result.counts) {
+                    const counts = result.counts;
+                    const container = document.getElementById('kpi-container');
+                    
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Total de Protocolos</p>
+                                <p class="text-3xl font-bold text-slate-800">${counts.TOTAL || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-amber-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Abertos</p>
+                                <p class="text-3xl font-bold text-amber-700">${counts.ABERTO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-red-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Atrasados (15+ dias)</p>
+                                <p class="text-3xl font-bold text-red-700">${counts.ATRASADO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-blue-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Com a Empresa</p>
+                                <p class="text-3xl font-bold text-blue-700">${counts["COM EMPRESA"] || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-emerald-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Resolvidos</p>
+                                <p class="text-3xl font-bold text-emerald-700">${counts.RESOLVIDO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-slate-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Cancelados</p>
+                                <p class="text-3xl font-bold text-slate-700">${counts.CANCELADO || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-violet-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Pendentes</p>
+                                <p class="text-3xl font-bold text-violet-700">${counts.PENDENTE || 0}</p>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-pink-500 p-5">
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Garantia</p>
+                                <p class="text-3xl font-bold text-pink-700">${counts.GARANTIA || 0}</p>
+                            </div>
+                        `;
                     }
                 }
-            });
-
-            // Renderizar os 8 cards
-            container.innerHTML = `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Total de Protocolos</p>
-                    <p class="text-3xl font-bold text-slate-800">${counts.TOTAL}</p>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-amber-500 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Abertos</p>
-                    <p class="text-3xl font-bold text-amber-700">${counts.ABERTO}</p>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-red-500 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Atrasados (15+ dias)</p>
-                    <p class="text-3xl font-bold text-red-700">${counts.ATRASADO}</p>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-blue-500 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Com a Empresa</p>
-                    <p class="text-3xl font-bold text-blue-700">${counts['COM EMPRESA']}</p>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-emerald-500 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Resolvidos</p>
-                    <p class="text-3xl font-bold text-emerald-700">${counts.RESOLVIDO}</p>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-slate-500 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Cancelados</p>
-                    <p class="text-3xl font-bold text-slate-700">${counts.CANCELADO}</p>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-violet-500 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Pendentes</p>
-                    <p class="text-3xl font-bold text-violet-700">${counts.PENDENTE}</p>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm border border-left border-l-4 border-l-pink-500 p-5">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Garantia</p>
-                    <p class="text-3xl font-bold text-pink-700">${counts.GARANTIA}</p>
-                </div>
-            `;
+            } catch (e) {
+                console.error('Erro ao carregar cards de status:', e);
+            }
         }
 
         function renderizarTabela(dados, container) {
