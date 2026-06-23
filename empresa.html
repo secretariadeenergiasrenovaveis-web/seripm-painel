@@ -294,16 +294,19 @@
                 });
                 
                 const result = await response.json();
+                console.log('🔐 Resultado do login:', result);
                 
                 if (result.success && result.role === 'EMPRESA') {
                     localStorage.setItem('user', result.username);
                     localStorage.setItem('role', result.role);
+                    localStorage.setItem('allowedTabs', result.allowedTabs || '');
                     usuarioAtual = result.username;
+                    console.log('✅ Login bem-sucedido. Abas permitidas:', result.allowedTabs);
                     mostrarDashboard();
                     carregarDadosDinamicos();
                     carregarProtocolos();
                 } else {
-                    alert('Erro: Acesso apenas para usuários EMPRESA.');
+                    alert('Erro: Acesso apenas para usuários EMPRESA. Resposta: ' + JSON.stringify(result));
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
                 }
@@ -365,26 +368,35 @@
         // CARREGAR PROTOCOLOS
         async function carregarProtocolos() {
             try {
+                const payload = {
+                    action: 'getProtocols',
+                    tab: 'COM FUNCIONÁRIO',
+                    role: localStorage.getItem('role'),
+                    username: usuarioAtual,
+                    allowedTabs: localStorage.getItem('allowedTabs') || ''
+                };
+                
+                console.log('📤 Enviando para API:', payload);
+                
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        action: 'getProtocols',
-                        tab: 'COM FUNCIONÁRIO',
-                        role: localStorage.getItem('role'),
-                        username: usuarioAtual
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 const result = await response.json();
-                if (result.success && result.data.length > 0) {
+                console.log('📥 Resposta da API:', result);
+                
+                if (result.success && result.data && result.data.length > 0) {
                     exibirProtocolos(result.data);
                 } else {
-                    exibirMensagem('Nenhum protocolo disponível no momento.');
+                    const msgErro = result.error || 'Nenhum protocolo disponível no momento.';
+                    console.warn('⚠️ Aviso:', msgErro);
+                    exibirMensagem(msgErro);
                     document.getElementById('protocolosContainer').innerHTML = '';
                 }
             } catch (err) {
-                console.error('Erro ao carregar protocolos:', err);
-                exibirMensagem('Erro ao conectar com o servidor.');
+                console.error('❌ Erro ao carregar protocolos:', err);
+                exibirMensagem('Erro ao conectar com o servidor: ' + err.message);
             }
         }
 
