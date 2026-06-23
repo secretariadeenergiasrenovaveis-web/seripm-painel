@@ -73,19 +73,28 @@
 
     <!-- MAIN CONTENT -->
     <main id="dashboard" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- FILTROS -->
-        <div class="mb-8 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center flex-wrap">
+        <!-- TOOLBAR: Filtros + Botões de Ação -->
+        <div class="mb-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center flex-wrap bg-slate-800 border border-slate-700 rounded-lg p-4">
             <div class="flex-1 min-w-[200px]">
-                <input type="text" id="filtroProtocolo" placeholder="🔍 Filtrar por protocolo..." class="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition">
+                <input type="text" id="filtroProtocolo" placeholder="🔍 Filtrar por protocolo..." class="w-full px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition">
             </div>
             <div class="flex-1 min-w-[200px]">
-                <select id="filtroBairro" class="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-orange-500 transition">
+                <select id="filtroBairro" class="w-full px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500 transition">
                     <option value="">📍 Todos os bairros</option>
                 </select>
             </div>
-            <button onclick="carregarProtocolos()" class="px-6 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 transition text-white font-semibold flex items-center justify-center gap-2">
+            <button onclick="carregarProtocolos()" title="Atualizar lista" class="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 transition text-white font-semibold flex items-center justify-center gap-2 whitespace-nowrap">
                 <i class="fas fa-redo"></i> Atualizar
             </button>
+            <button onclick="gerarPDF()" title="Exportar para PDF" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition text-white font-semibold flex items-center justify-center gap-2 whitespace-nowrap">
+                <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button onclick="imprimirProtocolos()" title="Imprimir" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white font-semibold flex items-center justify-center gap-2 whitespace-nowrap">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <div class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white font-semibold flex items-center gap-2 whitespace-nowrap">
+                <i class="fas fa-list"></i> Total: <span id="totalProtocolos">0</span>
+            </div>
         </div>
 
         <!-- STATUS MESSAGE -->
@@ -93,8 +102,18 @@
             <i class="fas fa-info-circle mr-2"></i> <span id="textoMensagem"></span>
         </div>
 
+        <!-- TABLE HEADER -->
+        <div class="hidden md:grid md:grid-cols-12 gap-4 px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg mb-3 text-sm font-semibold text-slate-300">
+            <div class="col-span-1 text-center">Sel.</div>
+            <div class="col-span-2">Data</div>
+            <div class="col-span-2">Protocolo</div>
+            <div class="col-span-3">Endereço</div>
+            <div class="col-span-2">Bairro</div>
+            <div class="col-span-2">Solicitante</div>
+        </div>
+
         <!-- PROTOCOLS LIST -->
-        <div id="protocolosContainer" class="space-y-3">
+        <div id="protocolosContainer" class="space-y-2">
             <!-- Itens da lista gerados dinamicamente -->
         </div>
     </main>
@@ -438,38 +457,61 @@
 
             if (protocolosFiltrados.length === 0) {
                 container.innerHTML = '<div class="text-center text-slate-400 py-12"><i class="fas fa-inbox text-4xl mb-3"></i><p>Nenhum protocolo encontrado</p></div>';
+                document.getElementById('totalProtocolos').textContent = '0';
                 return;
             }
 
+            // Atualizar total de protocolos
+            document.getElementById('totalProtocolos').textContent = protocolosFiltrados.length;
+
             console.log('✅ Gerando ' + protocolosFiltrados.length + ' linhas com classe protocol-row');
             
-            container.innerHTML = protocolosFiltrados.map(p => `
-                <div class="protocol-row bg-slate-800 border border-slate-700 rounded-lg p-4 flex items-center justify-between hover:bg-slate-750 transition">
-                    <!-- LADO ESQUERDO: Botão Ver Detalhes + Info -->
-                    <div class="flex items-center gap-4 flex-1">
-                        <button onclick='abrirDetalhes(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition text-white text-sm font-semibold flex items-center justify-center gap-2 whitespace-nowrap">
-                            <i class="fas fa-eye"></i> Ver Detalhes
-                        </button>
-                        
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-3 mb-1">
-                                <p class="text-lg font-bold text-orange-400">${p.PROTOCOLO || 'N/A'}</p>
-                                <span class="px-2 py-1 rounded-full bg-slate-700 text-slate-300 text-xs font-semibold">${p.STATUS || 'ABERTO'}</span>
-                            </div>
-                            <p class="text-sm text-slate-400 truncate">📍 ${p['ENDEREÇO DO PROBLEMA'] || 'N/A'}</p>
-                            <p class="text-sm text-slate-400">👤 ${p.SOLICITANTE || 'N/A'}</p>
-                        </div>
+            container.innerHTML = protocolosFiltrados.map((p, idx) => `
+                <div class="protocol-row bg-slate-800 border border-slate-700 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center hover:bg-slate-750 transition">
+                    <!-- CHECKBOX -->
+                    <div class="col-span-1 text-center">
+                        <input type="checkbox" class="protocol-checkbox w-4 h-4 rounded accent-orange-600 cursor-pointer" data-index="${idx}">
+                    </div>
+                    
+                    <!-- DATA -->
+                    <div class="col-span-2 text-sm text-slate-300">
+                        ${p.DATA || 'N/A'}
+                    </div>
+                    
+                    <!-- PROTOCOLO -->
+                    <div class="col-span-2">
+                        <p class="text-sm font-bold text-orange-400">${p.PROTOCOLO || 'N/A'}</p>
+                    </div>
+                    
+                    <!-- ENDEREÇO -->
+                    <div class="col-span-3">
+                        <p class="text-sm text-slate-300 truncate" title="${p['ENDEREÇO DO PROBLEMA'] || 'N/A'}">
+                            ${p['ENDEREÇO DO PROBLEMA'] || 'N/A'}
+                        </p>
+                    </div>
+                    
+                    <!-- BAIRRO -->
+                    <div class="col-span-2">
+                        <p class="text-sm text-slate-300 truncate">${p.BAIRRO || 'N/A'}</p>
+                    </div>
+                    
+                    <!-- SOLICITANTE -->
+                    <div class="col-span-2">
+                        <p class="text-sm text-slate-300 truncate">${p.SOLICITANTE || 'N/A'}</p>
                     </div>
 
-                    <!-- LADO DIREITO: Botões de Ação -->
-                    <div class="flex items-center gap-2 ml-4 flex-shrink-0">
-                        <button onclick="selecionarParaStatus('RESOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Marcar como Resolvido" class="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 transition text-white text-xs font-semibold flex items-center justify-center gap-1">
+                    <!-- BOTÕES (ocultos em mobile) -->
+                    <div class="col-span-full md:col-span-0 flex gap-2">
+                        <button onclick='abrirDetalhes(${JSON.stringify(p).replace(/'/g, "&apos;")})' title="Detalhes" class="flex-1 md:flex-none px-2 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition text-white text-sm flex items-center justify-center">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button onclick="selecionarParaStatus('RESOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Resolvido" class="flex-1 md:flex-none px-2 py-2 rounded-lg bg-green-600 hover:bg-green-700 transition text-white text-sm flex items-center justify-center">
                             <i class="fas fa-check"></i>
                         </button>
-                        <button onclick="selecionarParaStatus('DEVOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Devolver" class="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white text-xs font-semibold flex items-center justify-center gap-1">
+                        <button onclick="selecionarParaStatus('DEVOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Devolver" class="flex-1 md:flex-none px-2 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white text-sm flex items-center justify-center">
                             <i class="fas fa-arrow-left"></i>
                         </button>
-                        <button onclick="selecionarParaStatus('CANCELADO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Cancelar" class="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition text-white text-xs font-semibold flex items-center justify-center gap-1">
+                        <button onclick="selecionarParaStatus('CANCELADO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Cancelar" class="flex-1 md:flex-none px-2 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition text-white text-sm flex items-center justify-center">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -537,16 +579,22 @@
         // SELECIONAR PROTOCOLO PARA MUDANÇA DE STATUS
         function selecionarParaStatus(novoStatus, protocolo) {
             protocoloAtual = protocolo;
+            console.log('🔄 Mudança de status para:', novoStatus, 'Protocolo:', protocolo.PROTOCOLO);
             
             if (novoStatus === 'RESOLVIDO') {
                 // Resolvido sem motivo, muda diretamente
+                console.log('✅ RESOLVIDO - sem modal');
                 mudarStatus('RESOLVIDO');
             } else if (novoStatus === 'DEVOLVIDO') {
                 // Abre modal para digitar motivo
-                abrirMotivoDevolucao();
+                console.log('📋 Abrindo modal DEVOLUÇÃO');
+                document.getElementById('motivoDevolucao').value = '';
+                document.getElementById('modalMotivoDevolucao').classList.remove('hidden');
             } else if (novoStatus === 'CANCELADO') {
                 // Abre modal para digitar motivo
-                abrirMotivoCancelamento();
+                console.log('📋 Abrindo modal CANCELAMENTO');
+                document.getElementById('motivoCancelamento').value = '';
+                document.getElementById('modalMotivoCancelamento').classList.remove('hidden');
             }
         }
 
@@ -620,6 +668,83 @@
         // OCULTAR MENSAGEM
         function ocultarMensagem() {
             document.getElementById('mensagem').classList.add('hidden');
+        }
+
+        // GERAR PDF
+        function gerarPDF() {
+            const selecionados = document.querySelectorAll('.protocol-checkbox:checked');
+            if (selecionados.length === 0) {
+                alert('Selecione ao menos um protocolo para exportar.');
+                return;
+            }
+            
+            let conteudo = 'PROTOCOLOS SELECIONADOS PARA IMPRESSÃO\n\n';
+            conteudo += '=' .repeat(80) + '\n';
+            
+            document.querySelectorAll('.protocol-row').forEach((row, idx) => {
+                if (document.querySelectorAll('.protocol-checkbox')[idx].checked) {
+                    const cells = row.querySelectorAll('div');
+                    conteudo += '─'.repeat(80) + '\n';
+                }
+            });
+            
+            // Para uma solução mais robusta, você poderia usar jsPDF
+            // Por enquanto, vou fazer download como TXT
+            const blob = new Blob([conteudo], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'protocolos_' + new Date().toISOString().split('T')[0] + '.txt';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // IMPRIMIR PROTOCOLOS
+        function imprimirProtocolos() {
+            const selecionados = document.querySelectorAll('.protocol-checkbox:checked');
+            if (selecionados.length === 0) {
+                alert('Selecione ao menos um protocolo para imprimir.');
+                return;
+            }
+            
+            let html = '<html><head><title>Protocolos</title><style>';
+            html += 'body { font-family: Arial, sans-serif; margin: 10px; }';
+            html += 'table { width: 100%; border-collapse: collapse; }';
+            html += 'th, td { border: 1px solid #000; padding: 8px; text-align: left; }';
+            html += 'th { background-color: #f0f0f0; font-weight: bold; }';
+            html += '.page-break { page-break-after: always; }';
+            html += '</style></head><body>';
+            html += '<h2>PROTOCOLOS PARA EXECUÇÃO</h2>';
+            html += '<table>';
+            html += '<tr><th>Data</th><th>Protocolo</th><th>Endereço</th><th>Bairro</th><th>Solicitante</th><th>Status</th></tr>';
+            
+            document.querySelectorAll('.protocol-row').forEach((row, idx) => {
+                if (document.querySelectorAll('.protocol-checkbox')[idx].checked) {
+                    const cells = row.querySelectorAll('div');
+                    const data = cells[1]?.textContent || '';
+                    const protocolo = cells[2]?.textContent || '';
+                    const endereco = cells[3]?.textContent || '';
+                    const bairro = cells[4]?.textContent || '';
+                    const solicitante = cells[5]?.textContent || '';
+                    
+                    html += '<tr>';
+                    html += '<td>' + data.trim() + '</td>';
+                    html += '<td>' + protocolo.trim() + '</td>';
+                    html += '<td>' + endereco.trim() + '</td>';
+                    html += '<td>' + bairro.trim() + '</td>';
+                    html += '<td>' + solicitante.trim() + '</td>';
+                    html += '<td>COM A EMPRESA</td>';
+                    html += '</tr>';
+                }
+            });
+            
+            html += '</table></body></html>';
+            
+            const printWindow = window.open('', '', 'width=800,height=600');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 100);
         }
 
         // LOGOUT
