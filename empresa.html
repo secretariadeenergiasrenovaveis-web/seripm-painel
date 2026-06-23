@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Portal de Execução - SERIPM 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
@@ -244,6 +247,13 @@
     </div>
 
     <script>
+        // 🔄 LIMPAR CACHE NO CARREGAMENTO
+        if ('caches' in window) {
+            caches.keys().then(names => names.forEach(name => caches.delete(name)));
+        }
+        console.clear();
+        console.log('%c🚀 PORTAL EMPRESA CARREGADO', 'font-size: 16px; color: #10b981; font-weight: bold');
+        
         // CONFIG API - Usar a URL correta do Apps Script publicado
         const API_URL = "https://script.google.com/macros/s/AKfycbwxfrN3AmulqSm2UvwZq45gbrFwTGM5qnufmov1OV_HtjBwg0UTjL_Xc3PwBA-u6-BZ/exec";
         let usuarioAtual = null;
@@ -402,13 +412,16 @@
 
         // EXIBIR PROTOCOLOS
         function exibirProtocolos(protocolos) {
-            console.log('🔍 Protocolos recebidos:', protocolos);
+            console.log('🔍 Protocolos recebidos:', protocolos.length, 'itens');
             if (protocolos.length > 0) {
                 console.log('📊 COLUNAS DISPONÍVEIS:', Object.keys(protocolos[0]));
                 console.log('📋 Dados do 1º protocolo (COMPLETO):', JSON.stringify(protocolos[0], null, 2));
             }
             
             const container = document.getElementById('protocolosContainer');
+            console.log('📦 Container encontrado:', container ? 'SIM' : 'NÃO');
+            console.log('📦 Container class atual:', container?.className);
+            
             const filtroProtocolo = document.getElementById('filtroProtocolo').value.toLowerCase();
             const filtroBairro = document.getElementById('filtroBairro').value;
 
@@ -428,6 +441,8 @@
                 return;
             }
 
+            console.log('✅ Gerando ' + protocolosFiltrados.length + ' linhas com classe protocol-row');
+            
             container.innerHTML = protocolosFiltrados.map(p => `
                 <div class="protocol-row bg-slate-800 border border-slate-700 rounded-lg p-4 flex items-center justify-between hover:bg-slate-750 transition">
                     <!-- LADO ESQUERDO: Botão Ver Detalhes + Info -->
