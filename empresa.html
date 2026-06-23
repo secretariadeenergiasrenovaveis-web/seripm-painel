@@ -678,25 +678,69 @@
                 return;
             }
             
-            let conteudo = 'PROTOCOLOS SELECIONADOS PARA IMPRESSÃO\n\n';
-            conteudo += '=' .repeat(80) + '\n';
+            let html = '<html><head><meta charset="UTF-8"><title>Protocolos - SERIP</title><style>';
+            html += 'body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; background: white; }';
+            html += '.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }';
+            html += '.header-logo { width: 80px; height: 80px; }';
+            html += '.header-center { flex: 1; text-align: center; }';
+            html += '.header-center h2 { margin: 0; font-size: 14px; font-weight: bold; }';
+            html += '.header-center p { margin: 2px 0; font-size: 12px; }';
+            html += '.header-right { width: 80px; height: 80px; }';
+            html += 'table { width: 100%; border-collapse: collapse; margin-top: 20px; }';
+            html += 'th, td { border: 1px solid #333; padding: 10px; text-align: left; font-size: 11px; }';
+            html += 'th { background-color: #f0f0f0; font-weight: bold; }';
+            html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
+            html += '@media print { body { margin: 0; padding: 10px; } }';
+            html += '</style></head><body>';
+            
+            // CABEÇALHO
+            html += '<div class="header">';
+            html += '<div class="header-logo"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/brasao-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '<div class="header-center">';
+            html += '<h2>ESTADO DO RIO DE JANEIRO</h2>';
+            html += '<p>PREFEITURA MUNICIPAL DE MARICÁ</p>';
+            html += '<p>SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA</p>';
+            html += '<p><strong>PÚBLICA - SERIP</strong></p>';
+            html += '</div>';
+            html += '<div class="header-right"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/sec.energ.renov.ilum.publica-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '</div>';
+            
+            html += '<h3 style="text-align: center;">PROTOCOLOS PARA EXECUÇÃO</h3>';
+            html += '<table>';
+            html += '<tr><th>Data</th><th>Protocolo</th><th>Endereço</th><th>Bairro</th><th>Solicitante</th><th>Status</th></tr>';
             
             document.querySelectorAll('.protocol-row').forEach((row, idx) => {
                 if (document.querySelectorAll('.protocol-checkbox')[idx].checked) {
                     const cells = row.querySelectorAll('div');
-                    conteudo += '─'.repeat(80) + '\n';
+                    const data = cells[1]?.textContent?.trim() || '';
+                    const protocolo = cells[2]?.textContent?.trim() || '';
+                    const endereco = cells[3]?.textContent?.trim() || '';
+                    const bairro = cells[4]?.textContent?.trim() || '';
+                    const solicitante = cells[5]?.textContent?.trim() || '';
+                    
+                    html += '<tr>';
+                    html += '<td>' + data + '</td>';
+                    html += '<td>' + protocolo + '</td>';
+                    html += '<td>' + endereco + '</td>';
+                    html += '<td>' + bairro + '</td>';
+                    html += '<td>' + solicitante + '</td>';
+                    html += '<td>COM A EMPRESA</td>';
+                    html += '</tr>';
                 }
             });
             
-            // Para uma solução mais robusta, você poderia usar jsPDF
-            // Por enquanto, vou fazer download como TXT
-            const blob = new Blob([conteudo], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'protocolos_' + new Date().toISOString().split('T')[0] + '.txt';
-            a.click();
-            window.URL.revokeObjectURL(url);
+            html += '</table>';
+            html += '<p style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">Documento gerado em: ' + new Date().toLocaleString('pt-BR') + '</p>';
+            html += '</body></html>';
+            
+            const printWindow = window.open('', '', 'width=900,height=600');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            
+            // Salvar como PDF usando print
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
         }
 
         // IMPRIMIR PROTOCOLOS
@@ -707,44 +751,69 @@
                 return;
             }
             
-            let html = '<html><head><title>Protocolos</title><style>';
-            html += 'body { font-family: Arial, sans-serif; margin: 10px; }';
-            html += 'table { width: 100%; border-collapse: collapse; }';
-            html += 'th, td { border: 1px solid #000; padding: 8px; text-align: left; }';
+            let html = '<html><head><meta charset="UTF-8"><title>Protocolos - SERIP</title><style>';
+            html += 'body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; background: white; }';
+            html += '.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }';
+            html += '.header-logo { width: 80px; height: 80px; }';
+            html += '.header-center { flex: 1; text-align: center; }';
+            html += '.header-center h2 { margin: 0; font-size: 14px; font-weight: bold; }';
+            html += '.header-center p { margin: 2px 0; font-size: 12px; }';
+            html += '.header-right { width: 80px; height: 80px; }';
+            html += 'table { width: 100%; border-collapse: collapse; margin-top: 20px; }';
+            html += 'th, td { border: 1px solid #333; padding: 10px; text-align: left; font-size: 11px; }';
             html += 'th { background-color: #f0f0f0; font-weight: bold; }';
-            html += '.page-break { page-break-after: always; }';
+            html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
+            html += '@media print { body { margin: 0; padding: 10px; } .no-print { display: none; } }';
             html += '</style></head><body>';
-            html += '<h2>PROTOCOLOS PARA EXECUÇÃO</h2>';
+            
+            // CABEÇALHO
+            html += '<div class="header">';
+            html += '<div class="header-logo"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/brasao-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '<div class="header-center">';
+            html += '<h2>ESTADO DO RIO DE JANEIRO</h2>';
+            html += '<p>PREFEITURA MUNICIPAL DE MARICÁ</p>';
+            html += '<p>SECRETARIA DE ENERGIAS RENOVÁVEIS E ILUMINAÇÃO PÚBLICA</p>';
+            html += '<p><strong>PÚBLICA - SERIP</strong></p>';
+            html += '</div>';
+            html += '<div class="header-right"><img src="https://secretariadenergiasrenovaveis-web.github.io/seripm-painel/images/sec.energ.renov.ilum.publica-marica.png" style="width: 100%; height: auto;"></div>';
+            html += '</div>';
+            
+            html += '<h3 style="text-align: center;">PROTOCOLOS PARA EXECUÇÃO</h3>';
             html += '<table>';
             html += '<tr><th>Data</th><th>Protocolo</th><th>Endereço</th><th>Bairro</th><th>Solicitante</th><th>Status</th></tr>';
             
             document.querySelectorAll('.protocol-row').forEach((row, idx) => {
                 if (document.querySelectorAll('.protocol-checkbox')[idx].checked) {
                     const cells = row.querySelectorAll('div');
-                    const data = cells[1]?.textContent || '';
-                    const protocolo = cells[2]?.textContent || '';
-                    const endereco = cells[3]?.textContent || '';
-                    const bairro = cells[4]?.textContent || '';
-                    const solicitante = cells[5]?.textContent || '';
+                    const data = cells[1]?.textContent?.trim() || '';
+                    const protocolo = cells[2]?.textContent?.trim() || '';
+                    const endereco = cells[3]?.textContent?.trim() || '';
+                    const bairro = cells[4]?.textContent?.trim() || '';
+                    const solicitante = cells[5]?.textContent?.trim() || '';
                     
                     html += '<tr>';
-                    html += '<td>' + data.trim() + '</td>';
-                    html += '<td>' + protocolo.trim() + '</td>';
-                    html += '<td>' + endereco.trim() + '</td>';
-                    html += '<td>' + bairro.trim() + '</td>';
-                    html += '<td>' + solicitante.trim() + '</td>';
-                    html += '<td>COM O FUNCIONÁRIO</td>';
+                    html += '<td>' + data + '</td>';
+                    html += '<td>' + protocolo + '</td>';
+                    html += '<td>' + endereco + '</td>';
+                    html += '<td>' + bairro + '</td>';
+                    html += '<td>' + solicitante + '</td>';
+                    html += '<td>COM A EMPRESA</td>';
                     html += '</tr>';
                 }
             });
             
-            html += '</table></body></html>';
+            html += '</table>';
+            html += '<p style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">Documento gerado em: ' + new Date().toLocaleString('pt-BR') + '</p>';
+            html += '</body></html>';
             
-            const printWindow = window.open('', '', 'width=800,height=600');
+            const printWindow = window.open('', '', 'width=900,height=600');
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.focus();
-            setTimeout(() => printWindow.print(), 100);
+            
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
         }
 
         // LOGOUT
