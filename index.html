@@ -182,7 +182,7 @@
                 <!-- ================= VISTA DE TABELA PADRÃO ================= -->
                 <div id="table-view-container" class="flex flex-col gap-6">
                     <!-- KPI Cards (Resumo da Tabela) -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-container"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="kpi-container"></div>
 
                     <!-- ✅ NOVO: Botões de Ação para Protocolo Selecionados -->
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex gap-3">
@@ -679,6 +679,9 @@
                     const container = document.getElementById('kpi-container');
                     
                     if (container) {
+                        // ✅ PRESERVAR seleções: Guardar checkboxes selecionados ANTES de atualizar
+                        const checkboxesSelecionados = Array.from(document.querySelectorAll('.protocol-checkbox:checked')).map(cb => cb.getAttribute('data-protocol'));
+                        
                         container.innerHTML = `
                             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                                 <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Total de Protocolos</p>
@@ -713,6 +716,15 @@
                                 <p class="text-3xl font-bold text-pink-700">${counts.GARANTIA || 0}</p>
                             </div>
                         `;
+                        
+                        // ✅ RESTAURAR seleções DEPOIS da atualização
+                        setTimeout(() => {
+                            checkboxesSelecionados.forEach(protocolo => {
+                                const checkbox = document.querySelector(`.protocol-checkbox[data-protocol="${protocolo}"]`);
+                                if (checkbox) checkbox.checked = true;
+                            });
+                            atualizarContadorSelecionados();
+                        }, 100);
                     }
                 }
             } catch (e) {

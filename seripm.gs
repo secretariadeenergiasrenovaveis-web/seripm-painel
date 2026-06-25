@@ -200,14 +200,24 @@ function onEdit(e) {
   // Formatação Automática
   if (col === 7) {
     let cpf = valor.toString().replace(/\D/g, "").padStart(11, '0').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-    range.setNumberFormat("@").setValue(cpf);
+    if (valor.toString() !== cpf) {
+      range.setNumberFormat("@").setValue(cpf);
+    }
   } else if (col === 8) {
     let tel = valor.toString().replace(/\D/g, "");
     range.setNumberFormat("@");
-    if (tel.length === 11) range.setValue(tel.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3"));
-    else if (tel.length === 10) range.setValue(tel.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3"));
+    if (tel.length === 11) {
+      let telFmt = tel.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+      if (valor.toString() !== telFmt) range.setValue(telFmt);
+    } else if (tel.length === 10) {
+      let telFmt = tel.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+      if (valor.toString() !== telFmt) range.setValue(telFmt);
+    }
   } else if (typeof valor === 'string') {
-    range.setValue(valor.toUpperCase());
+    // Evita loop infinito alterando apenas se houver diferença de caixa
+    if (valor !== valor.toUpperCase()) {
+      range.setValue(valor.toUpperCase());
+    }
   }
 
   // Gatilho: Se alterar o STATUS manualmente na planilha (Coluna L = 12)
@@ -216,15 +226,21 @@ function onEdit(e) {
     sheet.getRange(row, 14).setValue(Utilities.formatDate(agora, "GMT-3", "dd/MM/yyyy HH:mm:ss")); // DATA DA MODIFICAÇÃO (N)
   }
 
-  // Sincronização e Gatilhos na criação manual (Planilha)
-  if (sheetName === "ENTRADA") {
+  // Sincronização e Gatilhos na criação manual (Planilha - Válido para ENTRADA e OBRA)
+  if (sheetName === "ENTRADA" || sheetName === "OBRA") {
+    // Coluna 6 (F) é o gatilho de preenchimento (Solicitante)
     if (col === 6 && sheet.getRange(row, 2).getValue() === "") {
       const agora = new Date();
       const dataFormatada = Utilities.formatDate(agora, "GMT-3", "dd/MM/yyyy HH:mm:ss");
+      const prefixo = (sheetName === "OBRA") ? "OBRA-" : "";
+      const proto = prefixo + Utilities.formatDate(agora, "GMT-3", "yyyyMMdd") + "-" + (row - 1).toString().padStart(3, '0');
       
       sheet.getRange(row, 1).setValue(dataFormatada); // DATA FIXA (A)
-      sheet.getRange(row, 2).setValue(Utilities.formatDate(agora, "GMT-3", "yyyyMMdd") + "-" + (row - 1).toString().padStart(3, '0'));
-      if (sheet.getRange(row, 12).getValue() === "") sheet.getRange(row, 12).setValue("ABERTO");
+      sheet.getRange(row, 2).setValue(proto); // PROTOCOLO GERADO (B)
+      
+      if (sheet.getRange(row, 12).getValue() === "") {
+        sheet.getRange(row, 12).setValue("ABERTO"); // STATUS PADRÃO (L)
+      }
       
       sheet.getRange(row, 14).setValue(dataFormatada); // DATA DA MODIFICAÇÃO INICIAL (N)
     }
@@ -323,7 +339,7 @@ function getProtocols(p) {
   // Validação de segurança: Apenas SUPER_ADMIN, SUPERVISOR e ADMINISTRATIVO veem tudo
   const rolesComAcessoTotal = ['SUPER_ADMIN', 'SUPERVISOR', 'ADMINISTRATIVO'];
   
-  // ✅ NOVO: Usuários EMPRESA têm acesso automático à aba "COM FUNCIONÁRIO"
+  // ✅ Usuários EMPRESA têm acesso automático à aba "COM FUNCIONÁRIO"
   const ehEmpresaAcessandoAbaCorreta = (p.role === 'EMPRESA' && p.tab === 'COM FUNCIONÁRIO');
   
   if (!rolesComAcessoTotal.includes(p.role) && !ehEmpresaAcessandoAbaCorreta) {
@@ -349,16 +365,6 @@ function getProtocols(p) {
       if (data[i][idxAtendente].toString().toUpperCase() !== p.username.toString().toUpperCase()) continue;
     }
 
-    let obj = {};
-    headers.forEach((h, index) => {
-      let val = data[i][index];
-      // Formata datas corretamente
-      if (h === "DATA" && val instanceof Date) {
-        val = Utilities.formatDate(val, "GMT-3", "dd/MM/yyyy HH:mm:ss");
-      }
-      obj[h] = val;
-    });
-    results.push(obj);
   }
   return responseJson({ success: true, data: results.reverse() });
 }
@@ -738,7 +744,7 @@ function getFiscalizations(p) {
 }
 
 /**
- * NOVO: Retorna contagem de protocolos por STATUS
+ * Retorna contagem de protocolos por STATUS
  * Busca dados sempre da aba ENTRADA para garantir precisão
  */
 function getStatusCounts(p) {
