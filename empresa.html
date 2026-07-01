@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,16 +11,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <style>
         * { font-family: 'Inter', 'Segoe UI', Roboto, sans-serif; }
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; overflow-x: hidden; }
         .protocol-card { transition: all 0.3s ease; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .protocol-card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .modal-overlay { backdrop-filter: blur(4px); }
         .btn-status { transition: all 0.2s ease; }
         .btn-status:hover { transform: scale(1.05); }
+        table { table-layout: fixed; }
+        th, td { word-wrap: break-word; overflow-wrap: break-word; }
     </style>
 </head>
-<body class="text-gray-100">
+<body class="text-gray-100 overflow-x-hidden">
 
     <!-- HEADER -->
     <header class="bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700 sticky top-0 z-50">
@@ -72,7 +74,7 @@
     </div>
 
     <!-- MAIN CONTENT -->
-    <main id="dashboard" class="hidden max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-4">
+    <main id="dashboard" class="hidden w-full max-w-7xl mx-auto px-2 sm:px-3 py-4">
         <!-- TOOLBAR: Filtros + Botões de Ação -->
         <div class="mb-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2 bg-slate-800 border border-slate-700 rounded-lg p-3">
             <!-- Filtro Protocolo -->
@@ -113,20 +115,20 @@
         </div>
 
         <!-- PROTOCOLS TABLE -->
-        <div class="overflow-x-auto bg-slate-800 border border-slate-700 rounded-lg mb-2">
-            <table class="w-full text-xs">
+        <div class="bg-slate-800 border border-slate-700 rounded-lg mb-2">
+            <table class="w-full text-xs table-fixed">
                 <thead class="bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700 sticky top-0 z-10">
                     <tr class="text-slate-300 font-semibold">
-                        <th class="px-2 py-1.5 text-center w-8">
-                            <input type="checkbox" id="selectAll" class="w-3.5 h-3.5 rounded accent-orange-600 cursor-pointer" 
-                                   o9nchange="toggleSelectAll(this)">
+                        <th class="px-1 py-1 text-center w-6">
+                            <input type="checkbox" id="selectAll" class="w-3 h-3 rounded accent-orange-600 cursor-pointer" 
+                                   onchange="toggleSelectAll(this)">
                         </th>
-                        <th class="px-2 py-1.5 text-left text-xs">Data</th>
-                        <th class="px-2 py-1.5 text-left text-xs">Protocolo</th>
-                        <th class="px-2 py-1.5 text-left text-xs">Solicitante</th>
-                        <th class="px-2 py-1.5 text-left text-xs">Endereço</th>
-                        <th class="px-2 py-1.5 text-left text-xs">Bairro</th>
-                        <th class="px-2 py-1.5 text-center text-xs">Ações</th>
+                        <th class="px-1 py-1 text-left text-xs w-12">Data</th>
+                        <th class="px-1 py-1 text-left text-xs w-16">Protocolo</th>
+                        <th class="px-1 py-1 text-left text-xs flex-1">Solicitante</th>
+                        <th class="px-1 py-1 text-left text-xs flex-1">Endereço</th>
+                        <th class="px-1 py-1 text-left text-xs w-20">Bairro</th>
+                        <th class="px-1 py-1 text-center text-xs w-20">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="protocolosContainer" class="divide-y divide-slate-700 text-xs">
@@ -529,46 +531,50 @@
             const protocolosPagina = todosProtocolos.slice(inicio, fim);
 
             container.innerHTML = protocolosPagina.map((p) => `
+                <tr class="hover:bg-slate-700 transition text-slate-300 border-b border-slate-700 h-6">
+                    <!-- CHECKBOX -->
+                    <td class="px-1 py-1 text-center">
+                        <input type="checkbox" class="protocol-checkbox w-3 h-3 rounded" data-protocolo="${p.PROTOCOLO}">
                     </td>
                     
                     <!-- DATA -->
-                    <td class="px-2 py-1 text-xs whitespace-nowrap">
+                    <td class="px-1 py-1 text-xs whitespace-nowrap truncate" title="${p.DATA || 'N/A'}">
                         ${p.DATA || 'N/A'}
                     </td>
                     
                     <!-- PROTOCOLO -->
-                    <td class="px-2 py-1 text-xs font-bold text-orange-400">
+                    <td class="px-1 py-1 text-xs font-bold text-orange-400 truncate" title="${p.PROTOCOLO || 'N/A'}">
                         ${p.PROTOCOLO || 'N/A'}
                     </td>
                     
                     <!-- SOLICITANTE -->
-                    <td class="px-2 py-1 text-xs truncate" title="${p.SOLICITANTE || 'N/A'}">
+                    <td class="px-1 py-1 text-xs truncate" title="${p.SOLICITANTE || 'N/A'}">
                         ${p.SOLICITANTE || 'N/A'}
                     </td>
                     
                     <!-- ENDEREÇO -->
-                    <td class="px-2 py-1 text-xs truncate" title="${p['ENDEREÇO DO PROBLEMA'] || p.ENDERECO || 'N/A'}">
+                    <td class="px-1 py-1 text-xs truncate" title="${p['ENDEREÇO DO PROBLEMA'] || p.ENDERECO || 'N/A'}">
                         ${p['ENDEREÇO DO PROBLEMA'] || p.ENDERECO || 'N/A'}
                     </td>
                     
                     <!-- BAIRRO -->
-                    <td class="px-2 py-1 text-xs">
+                    <td class="px-1 py-1 text-xs truncate" title="${p.BAIRRO || 'N/A'}">
                         ${p.BAIRRO || 'N/A'}
                     </td>
 
                     <!-- AÇÕES -->
-                    <td class="px-2 py-1 text-center">
+                    <td class="px-1 py-1 text-center">
                         <div class="flex gap-0.5 justify-center">
-                            <button onclick='abrirDetalhes(${JSON.stringify(p).replace(/'/g, "&apos;")})' title="Detalhes" class="px-1.5 py-0.5 rounded bg-slate-600 hover:bg-slate-500 transition text-white text-xs" aria-label="Abrir detalhes">
+                            <button onclick='abrirDetalhes(${JSON.stringify(p).replace(/'/g, "&apos;")})' title="Detalhes" class="px-1 py-0.5 rounded bg-slate-600 hover:bg-slate-500 transition text-white text-xs" aria-label="Abrir detalhes">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button onclick="mudarStatusRapido('RESOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Resolvido" class="px-1.5 py-0.5 rounded bg-green-600 hover:bg-green-700 transition text-white text-xs" aria-label="Marcar como resolvido">
+                            <button onclick="mudarStatusRapido('RESOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Resolvido" class="px-1 py-0.5 rounded bg-green-600 hover:bg-green-700 transition text-white text-xs" aria-label="Marcar como resolvido">
                                 <i class="fas fa-check"></i>
                             </button>
-                            <button onclick="mudarStatusRapido('DEVOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Devolver" class="px-1.5 py-0.5 rounded bg-blue-600 hover:bg-blue-700 transition text-white text-xs" aria-label="Devolver protocolo">
+                            <button onclick="mudarStatusRapido('DEVOLVIDO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Devolver" class="px-1 py-0.5 rounded bg-blue-600 hover:bg-blue-700 transition text-white text-xs" aria-label="Devolver protocolo">
                                 <i class="fas fa-reply"></i>
                             </button>
-                            <button onclick="mudarStatusRapido('CANCELADO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Cancelar" class="px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-700 transition text-white text-xs" aria-label="Cancelar protocolo">
+                            <button onclick="mudarStatusRapido('CANCELADO', ${JSON.stringify(p).replace(/'/g, "&apos;")})" title="Cancelar" class="px-1 py-0.5 rounded bg-red-600 hover:bg-red-700 transition text-white text-xs" aria-label="Cancelar protocolo">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -595,7 +601,7 @@
             if (paginaAtual < totalPaginas) {
                 paginaAtual++;
                 exibirPagina();
-                document.querySelector('.overflow-x-auto').scrollIntoView({ behavior: 'smooth' });
+                document.querySelector('table').scrollIntoView({ behavior: 'smooth' });
             }
         }
 
@@ -603,7 +609,7 @@
             if (paginaAtual > 1) {
                 paginaAtual--;
                 exibirPagina();
-                document.querySelector('.overflow-x-auto').scrollIntoView({ behavior: 'smooth' });
+                document.querySelector('table').scrollIntoView({ behavior: 'smooth' });
             }
         }
 
@@ -611,7 +617,7 @@
             if (num >= 1 && num <= totalPaginas) {
                 paginaAtual = num;
                 exibirPagina();
-                document.querySelector('.overflow-x-auto').scrollIntoView({ behavior: 'smooth' });
+                document.querySelector('table').scrollIntoView({ behavior: 'smooth' });
             }
         }
 
