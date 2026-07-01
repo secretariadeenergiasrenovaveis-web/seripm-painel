@@ -1,6 +1,7 @@
+// @ts-nocheck
 /**
  * SISTEMA INTEGRADO SERIPM 2026 - BACK-END API OTIMIZADO E COMPLETO
- * v2.0 - Inicialização Segura do Sistema
+ * v2.1 - CORRIGIDO: getProtocols, normalizarPerfil, isMatch integrado
  */
 
 /**
@@ -278,14 +279,15 @@ function responseJson(data) {
 }
 
 /**
- * Mapeia os nomes de perfil da planilha para o sistema normalizado
+ * ✅ CORRIGIDO: Normalização de Perfil com mapeamento consistente
  */
 function normalizarPerfil(perfil) {
   const p = (perfil || "").toString().toUpperCase().trim();
   
-  // Mapeamento de perfis
+  // Mapeamento consistente - uma entrada por chave
   const mapa = {
     "SUPER ADMINISTRADOR": "SUPER_ADMIN",
+    "SUPER ADMIN": "SUPER_ADMIN",
     "SUPER_ADMIN": "SUPER_ADMIN",
     "ADMINISTRADOR": "ADMINISTRATIVO",
     "ADMINISTRATIVO": "ADMINISTRATIVO",
@@ -297,32 +299,33 @@ function normalizarPerfil(perfil) {
     "FISCAL": "FISCAL"
   };
   
-  return mapa[p] || "ATENDIMENTO"; // Padrão: ATENDIMENTO
+  return mapa[p] || "ATENDIMENTO";
 }
 
 function processLogin(user, pass) {
   const sheet = getUserSheet();
   const data = sheet.getDataRange().getValues();
-  const headers = data[0];
+  const headers = data[0].map(h => h.toString().toUpperCase().trim());
   
-  // Encontra índices das colunas
-  const idxUser = headers.indexOf("USERNAME") >= 0 ? headers.indexOf("USERNAME") : 0;
-  const idxPass = headers.indexOf("PASSWORD") >= 0 ? headers.indexOf("PASSWORD") : 1;
-  const idxPerfil = headers.indexOf("PERFIL") >= 0 ? headers.indexOf("PERFIL") : 2;
-  const idxStatus = headers.indexOf("STATUS") >= 0 ? headers.indexOf("STATUS") : 3;
-  const idxAbas = headers.indexOf("ABAS_PERMITIDAS") >= 0 ? headers.indexOf("ABAS_PERMITIDAS") : 4;
-  
+  const idxUser = headers.indexOf("USERNAME");
+  const idxPass = headers.indexOf("PASSWORD");
+  const idxPerfil = headers.indexOf("PERFIL");
+  const idxStatus = headers.indexOf("STATUS");
+  const idxAbas = headers.indexOf("ABAS_PERMITIDAS");
+
   for (let i = 1; i < data.length; i++) {
-    if (data[i][idxUser].toString().trim().toUpperCase() === user.toString().trim().toUpperCase() && 
-        data[i][idxPass].toString() === pass.toString()) {
-      
-      const status = (data[i][idxStatus] || "ATIVO").toString().toUpperCase();
+    const rowUser = (data[i][idxUser] || "").toString().trim().toUpperCase();
+    const inputUser = user.toString().trim().toUpperCase();
+    const rowPass = (data[i][idxPass] || "").toString().trim();
+    const inputPass = pass.toString().trim();
+
+    if (rowUser === inputUser && rowPass === inputPass) {
+      const status = (data[i][idxStatus] || "").toString().toUpperCase().trim();
       if (status === "INATIVO") {
         return responseJson({ success: false, error: "Usuário inativo." });
       }
       
-      const perfilBruto = (data[i][idxPerfil] || "ATENDIMENTO").toString();
-      const perfilNormalizado = normalizarPerfil(perfilBruto);
+      const perfilNormalizado = normalizarPerfil(data[i][idxPerfil]);
       
       return responseJson({ 
         success: true, 
@@ -336,10 +339,17 @@ function processLogin(user, pass) {
 }
 
 function getProtocols(p) {
-  // Validação de segurança: Apenas SUPER_ADMIN, SUPERVISOR e ADMINISTRATIVO veem tudo
-  const rolesComAcessoTotal = ['SUPER_ADMIN', 'SUPERVISOR', 'ADMINISTRATIVO'];
+  // Funções auxiliares
+  const isMatch = (status, alvo) => {
+    if (!alvo) return true; // Se não tem filtro, mostra tudo
+    const s = (status || "").toString().toUpperCase().trim();
+    const a = (alvo || "").toString().toUpperCase().trim();
+    return s.includes(a) || s === a || 
+           (a === "COM EMPRESA" && (s.includes("COM FUNCIONÁRIO") || s.includes("ENCAMINHADO")));
+  };
   
-  // ✅ Usuários EMPRESA têm acesso automático à aba "COM FUNCIONÁRIO"
+  // Validação de segurança
+  const rolesComAcessoTotal = ['SUPER_ADMIN', 'SUPERVISOR', 'ADMINISTRATIVO', 'FISCAL'];
   const ehEmpresaAcessandoAbaCorreta = (p.role === 'EMPRESA' && p.tab === 'COM FUNCIONÁRIO');
   
   if (!rolesComAcessoTotal.includes(p.role) && !ehEmpresaAcessandoAbaCorreta) {
@@ -350,36 +360,28 @@ function getProtocols(p) {
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(p.tab);
-  let data = [];
   let statusFiltro = null;
   
-  // ✅ NOVO: Se não for OBRA, busca de ENTRADA filtrado por STATUS
-  if (p.tab !== "OBRA" && sheet) {
-    // Mapear nome da aba para STATUS a filtrar
+  // Definir qual STATUS filtrar
+  if (p.tab !== "OBRA" && p.tab !== "ENTRADA" && p.tab !== "SUPERVISOR") {
     const mapeamento = {
-      "ENTRADA": null, // Mostra todos
       "ADMINISTRATIVO": "ADMINISTRATIVO",
       "TELECOM": "TELECOM",
       "GARANTIA": "GARANTIA",
-      "COM FUNCIONÁRIO": "COM EMPRESA",
-      "IMPLANTAÇÃO": "IMPLANTAÇÃO",
-      "SUPERVISOR": null // Mostra todos
+      "COM FUNCIONÁRIO": "COM EMPRESA",  // ✅ CORRIGIDO: Buscar "COM EMPRESA" não "COM FUNCIONÁRIO"
+      "IMPLANTAÇÃO": "IMPLANTAÇÃO"
     };
-    
     statusFiltro = mapeamento[p.tab] || null;
-    
-    // Se não é aba física ou precisa filtrar, busca de ENTRADA
-    if (statusFiltro !== null || p.tab !== "OBRA") {
-      const sheetEntrada = ss.getSheetByName("ENTRADA");
-      if (sheetEntrada) {
-        sheet = sheetEntrada;
-      }
-    }
+  }
+  
+  // Se precisa filtrar por STATUS, busca da aba ENTRADA
+  if (statusFiltro !== null) {
+    sheet = ss.getSheetByName("ENTRADA");
   }
   
   if (!sheet) return responseJson({ success: false, error: "Aba não encontrada." });
   
-  data = sheet.getDataRange().getValues();
+  const data = sheet.getDataRange().getValues();
   if (data.length < 2) return responseJson({ success: true, data: [] });
 
   const headers = data[0];
@@ -389,15 +391,18 @@ function getProtocols(p) {
   const idxAtendente = headers.indexOf("ATENDENTE");
 
   for (let i = 1; i < data.length; i++) {
-    // ✅ Filtro 1: Se tem statusFiltro definido, só mostra esse status
+    // Filtro 1: Se tem statusFiltro definido, só mostra registros com esse status
     if (statusFiltro !== null && idxStatus >= 0) {
-      const status = (data[i][idxStatus] || "").toString().toUpperCase().trim();
-      if (status !== statusFiltro) continue;
+      if (!isMatch(data[i][idxStatus].toString(), statusFiltro)) {
+        continue;
+      }
     }
     
-    // ✅ Filtro 2: ATENDIMENTO vê apenas seus próprios registos
+    // Filtro 2: ATENDIMENTO vê apenas seus próprios registos
     if (p.role === "ATENDIMENTO" && idxAtendente >= 0) {
-      if (data[i][idxAtendente].toString().toUpperCase() !== p.username.toString().toUpperCase()) continue;
+      if (data[i][idxAtendente].toString().toUpperCase() !== p.username.toString().toUpperCase()) {
+        continue;
+      }
     }
 
     // Construir objeto com todos os dados
@@ -412,7 +417,7 @@ function getProtocols(p) {
     });
     results.push(obj);
   }
-  
+
   return responseJson({ success: true, data: results.reverse() });
 }
 
@@ -477,7 +482,7 @@ function updateStatus(p) {
 function getUserSheet() { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("USUARIOS") || SpreadsheetApp.getActiveSpreadsheet().getSheetByName("USUÁRIOS"); }
 
 function getUsers(p) {
-  const rolesComAcesso = ['SUPER_ADMIN', 'SUPERVISOR', 'ADMINISTRATIVO'];
+  const rolesComAcesso = ['SUPER ADMIN', 'SUPER ADMINISTRADOR', 'SUPER_ADMIN', 'SUPERVISOR', 'ADMINISTRATIVO'];
   if (!rolesComAcesso.includes(p.role)) return responseJson({ success: false, error: "Acesso negado" });
   const data = getUserSheet().getDataRange().getValues();
   return responseJson({ success: true, data: data.slice(1).map(r => ({ username: r[0], role: r[2], status: r[3], tabs: r[4] })) });
@@ -568,16 +573,22 @@ function getPerfis() {
   return responseJson({ 
     success: true, 
     perfis: [
+      "SUPER ADMIN",
+      "SUPER ADMINISTRADOR",
       "SUPER_ADMIN",
       "ADMINISTRATIVO",
       "ATENDIMENTO",
+      "ATENDENTE",
       "EMPRESA",
       "FISCAL"
     ],
     descricoes: {
+      "SUPER ADMINISTRADOR": "Acesso total ao sistema",
+      "SUPER ADMIN": "Acesso total ao sistema",
       "SUPER_ADMIN": "Acesso total ao sistema",
       "ADMINISTRATIVO": "Gerencia protocolos, RS e fiscalização",
       "ATENDIMENTO": "Abre protocolos",
+      "ATENDENTE": "Abre protocolos",
       "EMPRESA": "Executa serviços",
       "FISCAL": "Fiscaliza execuções"
     }
@@ -601,7 +612,7 @@ function getDynamicData(p) {
   // Encontra os índices das colunas
   const idxStatus = headers.indexOf("STATUS");
   const idxBairro = headers.indexOf("BAIRRO");
-  const idxServico = headers.indexOf("TIPO_SERVICO") >= 0 ? headers.indexOf("TIPO_SERVICO") : headers.indexOf("SERVIÇO") >= 0 ? headers.indexOf("SERVIÇO") : headers.indexOf("SERVICO");
+  const idxSolicitacao = headers.indexOf("TIPO_SOLICITAÇÃO") >= 0 ? headers.indexOf("TIPO_SOLICITAÇÃO") : headers.indexOf("SOLICITAÇÃO") >= 0 ? headers.indexOf("SOLICITAÇÃO") : headers.indexOf("SERVICO");
   
   // Coleta valores únicos (remove vazios e duplicatas)
   let statusSet = new Set();
@@ -791,8 +802,7 @@ function getFiscalizations(p) {
 }
 
 /**
- * Retorna contagem de protocolos por STATUS
- * Busca dados sempre da aba ENTRADA para garantir precisão
+ * ✅ CORRIGIDO: getStatusCounts com lógica clara
  */
 function getStatusCounts(p) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -826,7 +836,6 @@ function getStatusCounts(p) {
   // Contar ATRASADO da aba "URGENTE/ATRASADO" (se existir)
   if (sheetAtrasado) {
     const dataAtrasado = sheetAtrasado.getDataRange().getValues();
-    // Conta todas as linhas de dados (menos o cabeçalho)
     counts["ATRASADO"] = Math.max(0, dataAtrasado.length - 1);
   }
 
@@ -838,7 +847,7 @@ function getStatusCounts(p) {
     
     if (status === "ABERTO") {
       counts["ABERTO"]++;
-    } else if (status === "COM EMPRESA" || status === "ENCAMINHADO AO FUNCIONÁRIO") {
+    } else if (status === "COM EMPRESA" || status === "ENCAMINHADO AO FUNCIONÁRIO" || status === "COM FUNCIONÁRIO") {
       counts["COM EMPRESA"]++;
     } else if (status === "RESOLVIDO" || status === "CONCLUÍDO") {
       counts["RESOLVIDO"]++;
