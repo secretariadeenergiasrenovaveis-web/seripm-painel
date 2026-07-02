@@ -490,6 +490,7 @@
             console.log('🔍 Protocolos recebidos:', protocolos.length, 'itens');
             if (protocolos.length > 0) {
                 console.log('📊 COLUNAS DISPONÍVEIS:', Object.keys(protocolos[0]));
+                console.log('📋 PRIMEIRO PROTOCOLO COMPLETO:', protocolos[0]);
                 // Extrair bairros únicos
                 const bairros = [...new Set(protocolos.map(p => p.BAIRRO).filter(b => b))].sort();
                 preencherBairros(bairros);
